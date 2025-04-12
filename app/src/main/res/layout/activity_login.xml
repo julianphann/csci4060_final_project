@@ -14,7 +14,7 @@
         android:layout_width="120dp"
         android:layout_height="120dp"
         android:src="@drawable/logo_image"
-        android:contentDescription="Juum Logo"
+        android:contentDescription="JuuM Logo"
         android:layout_gravity="center" />
 
     <!-- Welcome Message -->
@@ -33,7 +33,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Juum helps students share rides and earn points."
+        android:text="JuuM helps students share rides and earn points."
         android:textStyle="bold"
         android:textSize="14sp"
         android:textColor="#6A5ACD"

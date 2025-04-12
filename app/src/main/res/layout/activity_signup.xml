@@ -33,7 +33,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Join Juum and start sharing rides."
+        android:text="JJuuM into sharing rides!"
         android:textStyle="bold"
         android:textSize="14sp"
         android:textColor="#6A5ACD"

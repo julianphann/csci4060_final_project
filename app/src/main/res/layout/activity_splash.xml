@@ -13,13 +13,13 @@
         android:layout_width="150dp"
         android:layout_height="150dp"
         android:src="@drawable/logo_image"
-        android:contentDescription="Juum Logo"/>
+        android:contentDescription="JuuM Logo"/>
 
     <!-- Welcome Message -->
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:text="Welcome to Juum!"
+        android:text="Welcome to JuuM!"
         android:textSize="28sp"
         android:textStyle="bold"
         android:layout_marginTop="16dp"

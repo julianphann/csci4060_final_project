@@ -21,7 +21,7 @@
     <TextView
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:text="Juum Help"
+        android:text="JuuM Help"
         android:textSize="24sp"
         android:textStyle="bold"
         android:textColor="#483D8B"

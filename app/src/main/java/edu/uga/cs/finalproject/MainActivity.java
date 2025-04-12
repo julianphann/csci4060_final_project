@@ -6,19 +6,22 @@
  */
 package edu.uga.cs.finalproject;
 
+import android.content.Intent;  // Import Intent
+import android.content.SharedPreferences;  // Import SharedPreferences
 import android.os.Bundle;
-import android.view.View;
 import android.view.Menu;
+import android.view.MenuItem;  // Import MenuItem
+import android.widget.Toast;
 
-import com.google.android.material.snackbar.Snackbar;
-import com.google.android.material.navigation.NavigationView;
-
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.drawerlayout.widget.DrawerLayout;
 import androidx.navigation.NavController;
 import androidx.navigation.Navigation;
 import androidx.navigation.ui.AppBarConfiguration;
 import androidx.navigation.ui.NavigationUI;
-import androidx.drawerlayout.widget.DrawerLayout;
-import androidx.appcompat.app.AppCompatActivity;
+
+import com.google.android.material.navigation.NavigationView;
 
 import edu.uga.cs.finalproject.databinding.ActivityMainBinding;
 
@@ -35,18 +38,9 @@ public class MainActivity extends AppCompatActivity {
         setContentView(binding.getRoot());
 
         setSupportActionBar(binding.appBarMain.toolbar);
-        binding.appBarMain.fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null)
-                        .setAnchorView(R.id.fab).show();
-            }
-        });
+
         DrawerLayout drawer = binding.drawerLayout;
         NavigationView navigationView = binding.navView;
-        // Passing each menu ID as a set of Ids because each
-        // menu should be considered as top level destinations.
         mAppBarConfiguration = new AppBarConfiguration.Builder(
                 R.id.nav_home, R.id.nav_gallery, R.id.nav_slideshow)
                 .setOpenableLayout(drawer)
@@ -58,9 +52,28 @@ public class MainActivity extends AppCompatActivity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.main, menu);
         return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        if (item.getItemId() == R.id.action_logout) {  // Corrected ID
+            // Handle Logout Click
+            Toast.makeText(this, "Logging Out", Toast.LENGTH_SHORT).show();
+            // Clear session (e.g., SharedPreferences)
+            SharedPreferences sharedPreferences = getSharedPreferences("MyAppPrefs", MODE_PRIVATE);
+            SharedPreferences.Editor editor = sharedPreferences.edit();
+            editor.putBoolean("isLoggedIn", false);  // Clear login state
+            editor.apply();
+
+            // Navigate to LoginActivity
+            Intent intent = new Intent(this, SplashActivity.class);
+            startActivity(intent);
+            finish();  // Close MainActivity
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
     }
 
     @Override
