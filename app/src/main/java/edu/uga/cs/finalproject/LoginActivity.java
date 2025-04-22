@@ -27,6 +27,17 @@ public class LoginActivity extends AppCompatActivity {
         etEmail = findViewById(R.id.email_input);
         etPassword = findViewById(R.id.password_input);
         Button btnLogin = findViewById(R.id.login_button);
+        Button cancelBtn = findViewById(R.id.cancel_button);
+
+        cancelBtn.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // Send the user back to the home screen or close the login screen
+                Intent intent = new Intent(LoginActivity.this, SplashActivity.class);
+                startActivity(intent);
+                finish(); // Optional: closes LoginActivity so user can't return with back button
+            }
+        });
 
         btnLogin.setOnClickListener(new View.OnClickListener() {
             @Override
