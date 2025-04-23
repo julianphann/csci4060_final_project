@@ -7,26 +7,37 @@ import android.view.ViewGroup;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.ViewModelProvider;
 
-import edu.uga.cs.finalproject.databinding.FragmentSlideshowBinding;
+import edu.uga.cs.finalproject.databinding.FragmentProfileBinding;
 
 public class ProfileFragment extends Fragment {
 
-    private FragmentSlideshowBinding binding;
+    private FragmentProfileBinding binding;
+    private ProfileViewModel profileViewModel;
 
+    @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
-                             ViewGroup container, Bundle savedInstanceState) {
-        ProfileViewModel profileViewModel =
-                new ViewModelProvider(this).get(ProfileViewModel.class);
+                             ViewGroup container,
+                             Bundle savedInstanceState) {
+        binding = FragmentProfileBinding.inflate(inflater, container, false);
+        return binding.getRoot();
+    }
 
-        binding = FragmentSlideshowBinding.inflate(inflater, container, false);
-        View root = binding.getRoot();
+    @Override
+    public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
 
-        final TextView textView = binding.textSlideshow;
-        profileViewModel.getText().observe(getViewLifecycleOwner(), textView::setText);
-        return root;
+        profileViewModel = new ViewModelProvider(this).get(ProfileViewModel.class);
+
+        final TextView emailTextView = binding.textEmail;
+        final TextView pointsTextView = binding.textPoints;
+
+        profileViewModel.getEmail().observe(getViewLifecycleOwner(), emailTextView::setText);
+        profileViewModel.getPoints().observe(getViewLifecycleOwner(), points ->
+                pointsTextView.setText("Ride Points: " + points));
     }
 
     @Override
