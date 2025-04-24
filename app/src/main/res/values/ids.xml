@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <item name="cardFindRide" type="id" />
+    <item name="cardPostRide" type="id" />
+    <item name="cardMyRides" type="id" />
+</resources>
