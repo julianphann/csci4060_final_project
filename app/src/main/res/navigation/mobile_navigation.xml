@@ -22,4 +22,24 @@
         android:name="edu.uga.cs.finalproject.ui.profile.ProfileFragment"
         android:label="Profile"
         tools:layout="@layout/fragment_profile" />
+
+    <fragment
+        android:id="@+id/findRideFragment"
+        android:name="edu.uga.cs.finalproject.ui.rides.FindRideFragment"
+        android:label="Find Ride"
+        tools:layout="@layout/fragment_find_ride" />
+
+    <fragment
+        android:id="@+id/postRideFragment"
+        android:name="edu.uga.cs.finalproject.ui.rides.PostRideFragment"
+        android:label="Post Ride"
+        tools:layout="@layout/fragment_post_ride" />
+
+    <fragment
+        android:id="@+id/myRidesFragment"
+        android:name="edu.uga.cs.finalproject.ui.rides.MyRidesFragment"
+        android:label="My Rides"
+        tools:layout="@layout/fragment_my_rides" />
+
+
 </navigation>

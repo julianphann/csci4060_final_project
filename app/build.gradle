@@ -35,6 +35,7 @@ android {
 
 dependencies {
 
+    // Core Libraries
     implementation libs.appcompat
     implementation libs.material
     implementation libs.constraintlayout
@@ -42,10 +43,18 @@ dependencies {
     implementation libs.lifecycle.viewmodel.ktx
     implementation libs.navigation.fragment
     implementation libs.navigation.ui
+    implementation 'androidx.cardview:cardview:1.0.0'
+
+    // Firebase Libraries
     implementation platform('com.google.firebase:firebase-bom:33.12.0')
     implementation 'com.google.firebase:firebase-auth'
     implementation 'com.google.firebase:firebase-database'
+    implementation 'com.firebaseui:firebase-ui-database:8.0.2' // Add Firebase UI Database dependency
+
+    // Firebase UI Authentication (if needed)
     implementation 'com.firebaseui:firebase-ui-auth:8.0.2'
+
+    // Testing Libraries
     testImplementation libs.junit
     androidTestImplementation libs.ext.junit
     androidTestImplementation libs.espresso.core

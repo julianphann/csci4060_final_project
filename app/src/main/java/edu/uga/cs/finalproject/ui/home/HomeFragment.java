@@ -6,27 +6,44 @@ import androidx.fragment.app.Fragment;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import androidx.lifecycle.ViewModelProvider;
-import androidx.databinding.DataBindingUtil;
+import androidx.cardview.widget.CardView;
+import androidx.navigation.Navigation;
+
+
 import edu.uga.cs.finalproject.R;
-import edu.uga.cs.finalproject.databinding.FragmentHomeBinding;
 
 public class HomeFragment extends Fragment {
-
-    private HomeViewModel homeViewModel;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater,
                              ViewGroup container, Bundle savedInstanceState) {
 
-        FragmentHomeBinding binding = DataBindingUtil.inflate(inflater, R.layout.fragment_home, container, false);
-        homeViewModel = new ViewModelProvider(this).get(HomeViewModel.class);
+        // Inflate the layout without DataBinding
+        View rootView = inflater.inflate(R.layout.fragment_home, container, false);
 
-        binding.setViewModel(homeViewModel);
-        binding.setLifecycleOwner(getViewLifecycleOwner());
+        // Get references to the card views using findViewById
+        CardView cardFindRide = rootView.findViewById(R.id.cardFindRide);
+        CardView cardPostRide = rootView.findViewById(R.id.cardPostRide);
+        CardView cardMyRides = rootView.findViewById(R.id.cardMyRides);
 
-        return binding.getRoot();
+        // Set onClickListeners for each card
+        cardFindRide.setOnClickListener(v -> onFindRideClick());
+        cardPostRide.setOnClickListener(v -> onPostRideClick());
+        cardMyRides.setOnClickListener(v -> onMyRidesClick());
+
+        return rootView;
     }
+
+    private void onFindRideClick() {
+        Navigation.findNavController(requireView()).navigate(R.id.findRideFragment);
+    }
+
+    private void onPostRideClick() {
+        Navigation.findNavController(requireView()).navigate(R.id.postRideFragment);
+    }
+
+    private void onMyRidesClick() {
+        Navigation.findNavController(requireView()).navigate(R.id.myRidesFragment);
+    }
+
 }
-
-
