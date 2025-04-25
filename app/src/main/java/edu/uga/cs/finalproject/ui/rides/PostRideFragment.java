@@ -7,6 +7,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.RadioGroup;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
@@ -61,6 +62,18 @@ public class PostRideFragment extends Fragment {
         ride.put("datetime", dateTimePicker.getText().toString());
         ride.put("status", "pending");
 
-        dbRef.push().setValue(ride);
+        dbRef.push().setValue(ride).addOnSuccessListener(aVoid -> {
+            // Show confirmation
+            Toast.makeText(getContext(), "Ride posted successfully!", Toast.LENGTH_SHORT).show();
+
+            // Clear fields
+            pickupEditText.setText("");
+            destinationEditText.setText("");
+            dateTimePicker.setText("");
+            radioGroup.clearCheck();
+        }).addOnFailureListener(e -> {
+            Toast.makeText(getContext(), "Failed to post ride: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        });
     }
+
 }

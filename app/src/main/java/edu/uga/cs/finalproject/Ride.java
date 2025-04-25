@@ -9,6 +9,7 @@ public class Ride {
     private String status; // "pending", "accepted", "confirmed"
     private String riderEmail;
     private String driverEmail;
+    private String email; // Email of the user who posted the ride
 
     // Default constructor required for Firebase
     public Ride() {
@@ -16,7 +17,7 @@ public class Ride {
 
     // Constructor with all fields
     public Ride(String id, String type, String dateTime, String destination, String pickup,
-                String status, String riderEmail, String driverEmail) {
+                String status, String riderEmail, String driverEmail, String email) {
         this.id = id;
         this.type = type;
         this.dateTime = dateTime;
@@ -25,6 +26,7 @@ public class Ride {
         this.status = status;
         this.riderEmail = riderEmail;
         this.driverEmail = driverEmail;
+        this.email = email; // Set email when creating a new Ride
     }
 
     // Getters and setters for all fields
@@ -90,5 +92,13 @@ public class Ride {
 
     public void setDriverEmail(String driverEmail) {
         this.driverEmail = driverEmail;
+    }
+
+    public String getEmail() {
+        return email; // Get the email of the user who posted the ride
+    }
+
+    public void setEmail(String email) {
+        this.email = email; // Set the email of the user who posted the ride
     }
 }

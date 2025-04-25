@@ -39,7 +39,16 @@
         android:id="@+id/myRidesFragment"
         android:name="edu.uga.cs.finalproject.ui.rides.MyRidesFragment"
         android:label="My Rides"
-        tools:layout="@layout/fragment_my_rides" />
+        tools:layout="@layout/fragment_my_rides">
+        <!-- Action to AcceptedRidesFragment -->
+        <action
+            android:id="@+id/action_myRidesFragment_to_acceptedRidesFragment"
+            app:destination="@id/acceptedRidesFragment" />
+    </fragment>
 
+    <fragment
+        android:id="@+id/acceptedRidesFragment"
+        android:name="edu.uga.cs.finalproject.ui.rides.AcceptedRidesFragment"
+        android:label="Accepted Rides" />
 
 </navigation>

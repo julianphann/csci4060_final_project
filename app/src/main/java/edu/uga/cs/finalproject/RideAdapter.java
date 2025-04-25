@@ -3,6 +3,7 @@ package edu.uga.cs.finalproject;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Button;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
@@ -10,55 +11,52 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.firebase.ui.database.FirebaseRecyclerAdapter;
 import com.firebase.ui.database.FirebaseRecyclerOptions;
-import com.google.firebase.database.FirebaseDatabase;
 
 import edu.uga.cs.finalproject.Ride;
 
 public class RideAdapter extends FirebaseRecyclerAdapter<Ride, RideAdapter.RideViewHolder> {
 
-    public RideAdapter(@NonNull FirebaseRecyclerOptions<Ride> options) {
+    // Interface for item click handling
+    public interface OnRideClickListener {
+        void onRideClick(Ride ride, String key);
+    }
+
+    private OnRideClickListener listener;
+
+    // Constructor where we pass both Firebase options and the listener
+    public RideAdapter(@NonNull FirebaseRecyclerOptions<Ride> options, OnRideClickListener listener) {
         super(options);
+        this.listener = listener;
     }
 
     @Override
     protected void onBindViewHolder(@NonNull RideViewHolder holder, int position, @NonNull Ride model) {
-        // Make sure to handle potential null values
-        if (model.getDestination() != null) {
-            holder.destination.setText("To: " + model.getDestination());
-        } else {
-            holder.destination.setText("To: N/A");
-        }
+        // Bind ride data to the views
+        holder.destination.setText("To: " + model.getDestination());
+        holder.pickup.setText("From: " + model.getPickup());
+        holder.dateTime.setText("Date/Time: " + model.getDateTime());
+        holder.status.setText("Status: " + model.getStatus());
+        holder.type.setText("Type: " + model.getType());
 
-        if (model.getPickup() != null) {
-            holder.pickup.setText("From: " + model.getPickup());
-        } else {
-            holder.pickup.setText("From: N/A");
-        }
-
-        if (model.getDateTime() != null) {
-            holder.dateTime.setText("Date/Time: " + model.getDateTime());
-        } else {
-            holder.dateTime.setText("Date/Time: N/A");
-        }
-
-        if (model.getStatus() != null) {
-            holder.status.setText("Status: " + model.getStatus());
-        } else {
-            holder.status.setText("Status: N/A");
-        }
+        // Set an OnClickListener to trigger the ride acceptance or any other action
+        holder.itemView.setOnClickListener(v -> {
+            String key = getRef(position).getKey();  // Get the key for the ride
+            listener.onRideClick(model, key);  // Call the listener to handle the click
+        });
     }
 
     @NonNull
     @Override
     public RideViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext())
-                .inflate(R.layout.item_ride, parent, false);
+        // Inflate the item layout for each ride
+        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_ride, parent, false);
         return new RideViewHolder(view);
     }
 
-    // ViewHolder to hold the view components
+    // ViewHolder to hold the individual ride item views
     public static class RideViewHolder extends RecyclerView.ViewHolder {
-        TextView destination, pickup, dateTime, status;
+        TextView destination, pickup, dateTime, status, type;
+        Button acceptButton;
 
         public RideViewHolder(@NonNull View itemView) {
             super(itemView);
@@ -66,6 +64,10 @@ public class RideAdapter extends FirebaseRecyclerAdapter<Ride, RideAdapter.RideV
             pickup = itemView.findViewById(R.id.text_pickup);
             dateTime = itemView.findViewById(R.id.text_date_time);
             status = itemView.findViewById(R.id.text_status);
+            type = itemView.findViewById(R.id.text_type);
+            acceptButton = itemView.findViewById(R.id.button_accept_ride); // Get the button reference
         }
     }
+
 }
+

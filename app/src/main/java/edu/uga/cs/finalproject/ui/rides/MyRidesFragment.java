@@ -44,7 +44,17 @@ public class MyRidesFragment extends Fragment {
                 .setQuery(query, Ride.class)
                 .build();
 
-        adapter = new RideAdapter(options);
+        // Implement OnRideClickListener
+        RideAdapter.OnRideClickListener listener = new RideAdapter.OnRideClickListener() {
+            @Override
+            public void onRideClick(Ride ride, String key) {
+                // Handle the click event for the ride (e.g., accept the ride, show details, etc.)
+                acceptRide(ride, key);
+            }
+        };
+
+        // Pass the listener to the adapter
+        adapter = new RideAdapter(options, listener);
 
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(adapter);
@@ -62,5 +72,11 @@ public class MyRidesFragment extends Fragment {
     public void onStop() {
         super.onStop();
         adapter.stopListening();
+    }
+
+    private void acceptRide(Ride ride, String key) {
+        // Handle accepting the ride here
+        // For example, updating the ride's status in Firebase
+        // You can use the `key` to update the ride in the database
     }
 }

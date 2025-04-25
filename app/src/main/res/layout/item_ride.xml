@@ -6,9 +6,9 @@
     android:padding="16dp"
     android:background="#FFF"
     android:elevation="2dp"
-    android:layout_marginBottom="8dp"
-    >
+    android:layout_marginBottom="8dp">
 
+    <!-- Destination -->
     <TextView
         android:id="@+id/text_destination"
         android:layout_width="wrap_content"
@@ -16,22 +16,41 @@
         android:text="To: Athens"
         android:textStyle="bold" />
 
+    <!-- Pickup -->
     <TextView
         android:id="@+id/text_pickup"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="From: Atlanta" />
 
+    <!-- Ride Type -->
+    <TextView
+        android:id="@+id/text_type"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Type: offer"
+        android:textColor="#008577"
+        android:textStyle="italic" />
+
+    <!-- Date/Time -->
     <TextView
         android:id="@+id/text_date_time"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Date/Time: 2025-05-01 13:00" />
 
+    <!-- Status -->
     <TextView
         android:id="@+id/text_status"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:text="Status: pending"
         android:textColor="#666" />
+    <Button
+        android:id="@+id/button_accept_ride"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Accept Ride"
+        android:textColor="@android:color/white"
+        android:padding="8dp"/>
 </LinearLayout>

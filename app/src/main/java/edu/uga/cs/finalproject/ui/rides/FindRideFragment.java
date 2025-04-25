@@ -4,21 +4,27 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
+import androidx.navigation.NavController;
+import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.firebase.ui.database.FirebaseRecyclerOptions;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.Query;
 
-import edu.uga.cs.finalproject.R;
-import edu.uga.cs.finalproject.RideAdapter;
-import edu.uga.cs.finalproject.Ride;
-import androidx.recyclerview.widget.RecyclerView;
+import java.util.HashMap;
+import java.util.Map;
 
+import edu.uga.cs.finalproject.R;
+import edu.uga.cs.finalproject.Ride;
+import edu.uga.cs.finalproject.RideAdapter;
 
 public class FindRideFragment extends Fragment {
 
@@ -28,10 +34,8 @@ public class FindRideFragment extends Fragment {
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        // Inflate the layout without DataBinding
         View rootView = inflater.inflate(R.layout.fragment_find_ride, container, false);
 
-        // Initialize RecyclerView
         recyclerView = rootView.findViewById(R.id.recyclerView);
         dbRef = FirebaseDatabase.getInstance().getReference("rides");
 
@@ -41,7 +45,7 @@ public class FindRideFragment extends Fragment {
                 .setQuery(query, Ride.class)
                 .build();
 
-        adapter = new RideAdapter(options);
+        adapter = new RideAdapter(options, (ride, key) -> acceptRide(ride, key));
 
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(adapter);
@@ -52,12 +56,67 @@ public class FindRideFragment extends Fragment {
     @Override
     public void onStart() {
         super.onStart();
-        adapter.startListening();
+        if (adapter != null) {
+            adapter.startListening();
+        }
     }
 
     @Override
     public void onStop() {
         super.onStop();
-        adapter.stopListening();
+        if (adapter != null) {
+            adapter.stopListening();
+        }
     }
+
+    private void acceptRide(Ride ride, String key) {
+        String currentUserEmail = FirebaseAuth.getInstance().getCurrentUser().getEmail();
+        Map<String, Object> updates = new HashMap<>();
+
+        // Update the ride status to accepted
+        updates.put("status", "accepted");
+        updates.put("acceptedBy", currentUserEmail);
+
+        // Update rider/driver info based on ride type
+        if ("offer".equals(ride.getType())) {
+            updates.put("riderEmail", currentUserEmail);
+            updates.put("driverEmail", ride.getEmail());
+        } else if ("request".equals(ride.getType())) {
+            updates.put("driverEmail", currentUserEmail);
+            updates.put("riderEmail", ride.getEmail());
+        }
+
+        // Update the ride in the database (remove from requested, add to accepted)
+        dbRef.child(key).updateChildren(updates).addOnSuccessListener(unused -> {
+            Toast.makeText(getContext(), "Ride accepted!", Toast.LENGTH_SHORT).show();
+
+            // Add the ride to the accepted list for both the rider and the driver
+            addToAcceptedList(ride, key);
+
+            // Navigate to the AcceptedRidesFragment
+            navigateToAcceptedRideFragment();
+        }).addOnFailureListener(e -> {
+            Toast.makeText(getContext(), "Failed to accept ride: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        });
+    }
+
+    // Method to add the accepted ride to both rider and driver's accepted list
+    private void addToAcceptedList(Ride ride, String key) {
+        DatabaseReference riderRef = FirebaseDatabase.getInstance().getReference("users")
+                .child(ride.getRiderEmail()).child("acceptedRides");
+        DatabaseReference driverRef = FirebaseDatabase.getInstance().getReference("users")
+                .child(ride.getDriverEmail()).child("acceptedRides");
+
+        riderRef.child(key).setValue(ride);
+        driverRef.child(key).setValue(ride);
+    }
+
+    // Navigate to the AcceptedRidesFragment
+    private void navigateToAcceptedRideFragment() {
+        // Replace this with actual navigation code
+        // Example: using Navigation Component
+        NavController navController = Navigation.findNavController(getView());
+        navController.navigate(R.id.action_myRidesFragment_to_acceptedRidesFragment);
+    }
+
 }
