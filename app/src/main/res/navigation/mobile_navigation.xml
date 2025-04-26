@@ -48,7 +48,7 @@
 
     <fragment
         android:id="@+id/acceptedRidesFragment"
-        android:name="edu.uga.cs.finalproject.ui.rides.AcceptedRidesFragment"
+        android:name="edu.uga.cs.finalproject.ui.rides.AcceptedRideFragment"
         android:label="Accepted Rides" />
 
 </navigation>

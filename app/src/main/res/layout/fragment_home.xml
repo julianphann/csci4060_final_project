@@ -34,7 +34,7 @@
             <TextView
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="“The journey of a thousand miles begins with a single step.”"
+                android:text="The best friendships are built on quiet exchanges of support—giving when you can, and trusting they’d do the same."
                 android:textSize="16sp"
                 android:paddingTop="8dp"
                 android:gravity="center"/>

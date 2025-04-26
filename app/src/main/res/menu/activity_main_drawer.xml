@@ -6,7 +6,7 @@
             android:title="Home"/>
         <item
             android:id="@+id/nav_rides"
-            android:title="My Rides"/>
+            android:title="My Accepted Rides"/>
         <item
             android:id="@+id/nav_profile"
             android:title="Profile"/>

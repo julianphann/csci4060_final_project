@@ -8,6 +8,16 @@
     android:elevation="2dp"
     android:layout_marginBottom="8dp">
 
+    <!-- User Email -->
+    <TextView
+        android:id="@+id/text_email"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Posted by: user@example.com"
+        android:textColor="#333"
+        android:textStyle="italic"
+        android:layout_marginBottom="4dp"/>
+
     <!-- Destination -->
     <TextView
         android:id="@+id/text_destination"
@@ -46,6 +56,8 @@
         android:layout_height="wrap_content"
         android:text="Status: pending"
         android:textColor="#666" />
+
+    <!-- Accept Button -->
     <Button
         android:id="@+id/button_accept_ride"
         android:layout_width="wrap_content"

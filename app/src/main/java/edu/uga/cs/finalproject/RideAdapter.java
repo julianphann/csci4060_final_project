@@ -12,7 +12,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.firebase.ui.database.FirebaseRecyclerAdapter;
 import com.firebase.ui.database.FirebaseRecyclerOptions;
 
-import edu.uga.cs.finalproject.Ride;
 
 public class RideAdapter extends FirebaseRecyclerAdapter<Ride, RideAdapter.RideViewHolder> {
 
@@ -31,19 +30,24 @@ public class RideAdapter extends FirebaseRecyclerAdapter<Ride, RideAdapter.RideV
 
     @Override
     protected void onBindViewHolder(@NonNull RideViewHolder holder, int position, @NonNull Ride model) {
-        // Bind ride data to the views
         holder.destination.setText("To: " + model.getDestination());
         holder.pickup.setText("From: " + model.getPickup());
         holder.dateTime.setText("Date/Time: " + model.getDateTime());
         holder.status.setText("Status: " + model.getStatus());
         holder.type.setText("Type: " + model.getType());
+        holder.email.setText("Posted by: " + model.getEmail());  // ← This is what was missing
 
-        // Set an OnClickListener to trigger the ride acceptance or any other action
         holder.itemView.setOnClickListener(v -> {
-            String key = getRef(position).getKey();  // Get the key for the ride
-            listener.onRideClick(model, key);  // Call the listener to handle the click
+            String key = getRef(position).getKey();
+            listener.onRideClick(model, key);
+        });
+
+        holder.acceptButton.setOnClickListener(v -> {
+            String key = getRef(position).getKey();
+            listener.onRideClick(model, key);
         });
     }
+
 
     @NonNull
     @Override
@@ -55,7 +59,7 @@ public class RideAdapter extends FirebaseRecyclerAdapter<Ride, RideAdapter.RideV
 
     // ViewHolder to hold the individual ride item views
     public static class RideViewHolder extends RecyclerView.ViewHolder {
-        TextView destination, pickup, dateTime, status, type;
+        TextView destination, pickup, dateTime, status, type, email; // ← Add email
         Button acceptButton;
 
         public RideViewHolder(@NonNull View itemView) {
@@ -65,9 +69,9 @@ public class RideAdapter extends FirebaseRecyclerAdapter<Ride, RideAdapter.RideV
             dateTime = itemView.findViewById(R.id.text_date_time);
             status = itemView.findViewById(R.id.text_status);
             type = itemView.findViewById(R.id.text_type);
-            acceptButton = itemView.findViewById(R.id.button_accept_ride); // Get the button reference
+            email = itemView.findViewById(R.id.text_email); // ← Bind it
+            acceptButton = itemView.findViewById(R.id.button_accept_ride);
         }
     }
 
 }
-

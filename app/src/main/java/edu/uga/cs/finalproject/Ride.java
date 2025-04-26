@@ -1,5 +1,7 @@
 package edu.uga.cs.finalproject;
 
+import com.google.firebase.database.PropertyName;
+
 public class Ride {
     private String id;
     private String type; // "offer" or "request"
@@ -46,10 +48,12 @@ public class Ride {
         this.type = type;
     }
 
+    @PropertyName("datetime")
     public String getDateTime() {
         return dateTime;
     }
 
+    @PropertyName("datetime")
     public void setDateTime(String dateTime) {
         this.dateTime = dateTime;
     }

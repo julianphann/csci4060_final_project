@@ -29,7 +29,9 @@
                 android:id="@+id/dateTimePicker"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:hint="Date and Time" />
+                android:hint="Select Date and Time"
+                android:focusable="false"
+                android:clickable="true" />
 
             <RadioGroup
                 android:id="@+id/radioGroup"
