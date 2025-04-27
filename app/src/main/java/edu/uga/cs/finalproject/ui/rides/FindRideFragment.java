@@ -31,6 +31,7 @@ public class FindRideFragment extends Fragment {
     private DatabaseReference dbRef;
     private RideAdapter adapter;
     private RecyclerView recyclerView;
+    private String currentUserEmail;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -38,6 +39,7 @@ public class FindRideFragment extends Fragment {
 
         recyclerView = rootView.findViewById(R.id.recyclerView);
         dbRef = FirebaseDatabase.getInstance().getReference("rides");
+        currentUserEmail = FirebaseAuth.getInstance().getCurrentUser().getEmail();
 
         Query query = dbRef.orderByChild("status").equalTo("pending");
 
@@ -45,7 +47,18 @@ public class FindRideFragment extends Fragment {
                 .setQuery(query, Ride.class)
                 .build();
 
-        adapter = new RideAdapter(options, (ride, key) -> acceptRide(ride, key));
+        adapter = new RideAdapter(options, (ride, key) -> acceptRide(ride, key)) {
+            @Override
+            protected void onBindViewHolder(@NonNull RideViewHolder holder, int position, @NonNull Ride model) {
+                // Check if the ride belongs to current user
+                if (model.getEmail() != null && model.getEmail().equals(currentUserEmail)) {
+                    holder.itemView.setVisibility(View.GONE);
+                    holder.itemView.setLayoutParams(new RecyclerView.LayoutParams(0, 0)); // Hide it
+                } else {
+                    super.onBindViewHolder(holder, position, model); // Otherwise show normally
+                }
+            }
+        };
 
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(adapter);
@@ -73,11 +86,9 @@ public class FindRideFragment extends Fragment {
         String currentUserEmail = FirebaseAuth.getInstance().getCurrentUser().getEmail();
         Map<String, Object> updates = new HashMap<>();
 
-        // Update the ride status to accepted
         updates.put("status", "accepted");
         updates.put("acceptedBy", currentUserEmail);
 
-        // Update rider/driver info based on ride type
         if ("offer".equals(ride.getType())) {
             updates.put("riderEmail", currentUserEmail);
             updates.put("driverEmail", ride.getEmail());
@@ -86,21 +97,15 @@ public class FindRideFragment extends Fragment {
             updates.put("riderEmail", ride.getEmail());
         }
 
-        // Update the ride in the database (remove from requested, add to accepted)
         dbRef.child(key).updateChildren(updates).addOnSuccessListener(unused -> {
             Toast.makeText(getContext(), "Ride accepted!", Toast.LENGTH_SHORT).show();
-
-            // Add the ride to the accepted list for both the rider and the driver
             addToAcceptedList(ride, key);
-
-            // Navigate to the AcceptedRidesFragment
             navigateToRideFragment();
         }).addOnFailureListener(e -> {
             Toast.makeText(getContext(), "Failed to accept ride: " + e.getMessage(), Toast.LENGTH_LONG).show();
         });
     }
 
-    // Method to add the accepted ride to both rider and driver's accepted list
     private void addToAcceptedList(Ride ride, String key) {
         String currentUserEmail = FirebaseAuth.getInstance().getCurrentUser().getEmail();
 
@@ -112,7 +117,7 @@ public class FindRideFragment extends Fragment {
             driverEmail = currentUserEmail;
             riderEmail = ride.getEmail();
         } else {
-            return; // Unknown type, fail silently
+            return;
         }
 
         DatabaseReference riderRef = FirebaseDatabase.getInstance().getReference("users")
@@ -124,15 +129,12 @@ public class FindRideFragment extends Fragment {
         driverRef.child(key).setValue(ride);
     }
 
-    // Navigate to the AcceptedRidesFragment
     private void navigateToRideFragment() {
-        // Replace this with actual navigation code
-        // Example: using Navigation Component
         View view = getView();
         if (view != null) {
             NavController navController = Navigation.findNavController(view);
             navController.navigate(R.id.action_findRideFragment_to_RidesFragment);
         }
     }
-
 }
+
