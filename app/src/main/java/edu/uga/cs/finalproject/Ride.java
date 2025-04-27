@@ -12,7 +12,7 @@ public class Ride {
     private String riderEmail;
     private String driverEmail;
     private String email; // Email of the user who posted the ride
-
+    private long completedAt;
     // Default constructor required for Firebase
     public Ride() {
     }
@@ -104,5 +104,13 @@ public class Ride {
 
     public void setEmail(String email) {
         this.email = email; // Set the email of the user who posted the ride
+    }
+
+    public long getCompletedAt() {
+        return completedAt;
+    }
+
+    public void setCompletedAt(long completedAt) {
+        this.completedAt = completedAt;
     }
 }

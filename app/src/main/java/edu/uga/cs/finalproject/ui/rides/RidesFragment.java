@@ -1,6 +1,5 @@
 package edu.uga.cs.finalproject.ui.rides;
 
-import android.app.ProgressDialog;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -31,7 +30,6 @@ public class RidesFragment extends Fragment {
     private DatabaseReference dbRef;
     private RideAdapter adapter;
     private RecyclerView recyclerView;
-    private ProgressDialog progressDialog;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -41,11 +39,6 @@ public class RidesFragment extends Fragment {
         mAuth = FirebaseAuth.getInstance();
         dbRef = FirebaseDatabase.getInstance().getReference("rides");
 
-        if (mAuth.getCurrentUser() == null) {
-            Toast.makeText(getContext(), "Not signed in", Toast.LENGTH_SHORT).show();
-            return rootView;
-        }
-
         String userEmail = mAuth.getCurrentUser().getEmail();
         Query query = dbRef.orderByChild("acceptedBy").equalTo(userEmail);
 
@@ -53,7 +46,14 @@ public class RidesFragment extends Fragment {
                 .setQuery(query, Ride.class)
                 .build();
 
-        adapter = new RideAdapter(options, (ride, key) -> confirmRideCompletion(ride, key));
+        RideAdapter.OnRideClickListener listener = new RideAdapter.OnRideClickListener() {
+            @Override
+            public void onRideClick(Ride ride, String key) {
+                confirmRideCompletion(ride, key);
+            }
+        };
+
+        adapter = new RideAdapter(options, listener);
 
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(adapter);
@@ -78,66 +78,52 @@ public class RidesFragment extends Fragment {
     }
 
     private void confirmRideCompletion(Ride ride, String key) {
-        progressDialog = new ProgressDialog(getContext());
-        progressDialog.setMessage("Completing ride...");
-        progressDialog.setCancelable(false);
-        progressDialog.show();
+        // First move the ride to history
+        moveToHistory(ride, key);
 
-        Map<String, Object> updates = new HashMap<>();
-        updates.put("status", "completed");
-        updates.put("completedAt", System.currentTimeMillis());
+        // Then adjust points
+        adjustPoints(ride);
 
-        dbRef.child(key).updateChildren(updates).addOnSuccessListener(unused -> {
-            adjustPoints(ride, () -> {
-                moveToHistory(ride, key);
-                progressDialog.dismiss();
-                Toast.makeText(getContext(), "Ride completed and points adjusted", Toast.LENGTH_SHORT).show();
-            });
+        // Finally delete from active rides
+        dbRef.child(key).removeValue().addOnSuccessListener(unused -> {
+            Toast.makeText(getContext(), "Ride completed and removed from active rides.", Toast.LENGTH_SHORT).show();
         }).addOnFailureListener(e -> {
-            progressDialog.dismiss();
-            Toast.makeText(getContext(), "Failed to confirm ride: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            Toast.makeText(getContext(), "Failed to remove ride: " + e.getMessage(), Toast.LENGTH_LONG).show();
         });
     }
 
-    private void adjustPoints(Ride ride, Runnable onComplete) {
-        DatabaseReference riderRef = FirebaseDatabase.getInstance()
-                .getReference("users").child(sanitizeEmail(ride.getRiderEmail())).child("points");
-        DatabaseReference driverRef = FirebaseDatabase.getInstance()
-                .getReference("users").child(sanitizeEmail(ride.getDriverEmail())).child("points");
+    private void adjustPoints(Ride ride) {
+        String riderKey = sanitizeEmail(ride.getRiderEmail());
+        String driverKey = sanitizeEmail(ride.getDriverEmail());
 
-        riderRef.get().addOnSuccessListener(riderSnapshot -> {
-            Long riderPoints = riderSnapshot.getValue(Long.class);
+        DatabaseReference riderPointsRef = FirebaseDatabase.getInstance().getReference("users").child(riderKey).child("ridePoints");
+        DatabaseReference driverPointsRef = FirebaseDatabase.getInstance().getReference("users").child(driverKey).child("ridePoints");
+
+        // Atomically adjust rider points
+        riderPointsRef.get().addOnSuccessListener(snapshot -> {
+            Long riderPoints = snapshot.getValue(Long.class);
             if (riderPoints == null) riderPoints = 0L;
-            riderRef.setValue(riderPoints - 50);
+            long newPoints = Math.max(0, riderPoints - 50);  // Avoid negative points
+            riderPointsRef.setValue(newPoints);
+        });
 
-            driverRef.get().addOnSuccessListener(driverSnapshot -> {
-                Long driverPoints = driverSnapshot.getValue(Long.class);
-                if (driverPoints == null) driverPoints = 0L;
-                driverRef.setValue(driverPoints + 50);
-
-                // Only after adjusting points we continue
-                if (onComplete != null) {
-                    onComplete.run();
-                }
-            }).addOnFailureListener(e -> {
-                Toast.makeText(getContext(), "Failed to update driver points", Toast.LENGTH_LONG).show();
-            });
-        }).addOnFailureListener(e -> {
-            Toast.makeText(getContext(), "Failed to update rider points", Toast.LENGTH_LONG).show();
+        // Atomically adjust driver points
+        driverPointsRef.get().addOnSuccessListener(snapshot -> {
+            Long driverPoints = snapshot.getValue(Long.class);
+            if (driverPoints == null) driverPoints = 0L;
+            driverPointsRef.setValue(driverPoints + 50);
         });
     }
 
     private void moveToHistory(Ride ride, String key) {
         DatabaseReference historyRef = FirebaseDatabase.getInstance().getReference("history");
-
-        historyRef.child(key).setValue(ride).addOnSuccessListener(unused -> {
-            dbRef.child(key).removeValue(); // Remove after success
-        }).addOnFailureListener(e -> {
-            Toast.makeText(getContext(), "Failed to move ride to history: " + e.getMessage(), Toast.LENGTH_LONG).show();
-        });
+        ride.setStatus("completed");  // set ride status before moving
+        ride.setCompletedAt(System.currentTimeMillis());  // record completed time
+        historyRef.child(key).setValue(ride);
     }
 
     private String sanitizeEmail(String email) {
+        if (email == null) return null;
         return email.replace(".", ",");
     }
 }
