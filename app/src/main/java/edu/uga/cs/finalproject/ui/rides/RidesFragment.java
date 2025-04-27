@@ -1,5 +1,6 @@
 package edu.uga.cs.finalproject.ui.rides;
 
+import android.app.ProgressDialog;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -30,36 +31,29 @@ public class RidesFragment extends Fragment {
     private DatabaseReference dbRef;
     private RideAdapter adapter;
     private RecyclerView recyclerView;
+    private ProgressDialog progressDialog;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        // Inflate the layout without DataBinding
         View rootView = inflater.inflate(R.layout.fragment_accepted_rides, container, false);
 
-        // Initialize RecyclerView
         recyclerView = rootView.findViewById(R.id.recyclerView);
         mAuth = FirebaseAuth.getInstance();
         dbRef = FirebaseDatabase.getInstance().getReference("rides");
 
-        // Query for accepted rides for the current user (either as a rider or a driver)
+        if (mAuth.getCurrentUser() == null) {
+            Toast.makeText(getContext(), "Not signed in", Toast.LENGTH_SHORT).show();
+            return rootView;
+        }
+
         String userEmail = mAuth.getCurrentUser().getEmail();
-        Query query = dbRef.orderByChild("acceptedBy").equalTo(userEmail);  // filter rides accepted by this user
+        Query query = dbRef.orderByChild("acceptedBy").equalTo(userEmail);
 
         FirebaseRecyclerOptions<Ride> options = new FirebaseRecyclerOptions.Builder<Ride>()
                 .setQuery(query, Ride.class)
                 .build();
 
-        // Implement OnRideClickListener
-        RideAdapter.OnRideClickListener listener = new RideAdapter.OnRideClickListener() {
-            @Override
-            public void onRideClick(Ride ride, String key) {
-                // Handle the click event for the accepted ride (e.g., confirm ride completion)
-                confirmRideCompletion(ride, key);
-            }
-        };
-
-        // Pass the listener to the adapter
-        adapter = new RideAdapter(options, listener);
+        adapter = new RideAdapter(options, (ride, key) -> confirmRideCompletion(ride, key));
 
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(adapter);
@@ -70,62 +64,80 @@ public class RidesFragment extends Fragment {
     @Override
     public void onStart() {
         super.onStart();
-        adapter.startListening();
+        if (adapter != null) {
+            adapter.startListening();
+        }
     }
 
     @Override
     public void onStop() {
         super.onStop();
-        adapter.stopListening();
+        if (adapter != null) {
+            adapter.stopListening();
+        }
     }
 
     private void confirmRideCompletion(Ride ride, String key) {
-        // Logic to confirm ride completion, adjust points, and remove the ride
+        progressDialog = new ProgressDialog(getContext());
+        progressDialog.setMessage("Completing ride...");
+        progressDialog.setCancelable(false);
+        progressDialog.show();
+
         Map<String, Object> updates = new HashMap<>();
         updates.put("status", "completed");
-        updates.put("completedAt", System.currentTimeMillis()); // Record the completion time
+        updates.put("completedAt", System.currentTimeMillis());
 
-        // Adjust points for rider and driver
-        // e.g., decrease points for rider and increase points for driver
-        adjustPoints(ride);
-
-        // Move the ride to history
-        moveToHistory(ride, key);
-
-        // Remove the ride from active accepted rides
         dbRef.child(key).updateChildren(updates).addOnSuccessListener(unused -> {
-            Toast.makeText(getContext(), "Ride completed and points adjusted", Toast.LENGTH_SHORT).show();
+            adjustPoints(ride, () -> {
+                moveToHistory(ride, key);
+                progressDialog.dismiss();
+                Toast.makeText(getContext(), "Ride completed and points adjusted", Toast.LENGTH_SHORT).show();
+            });
         }).addOnFailureListener(e -> {
+            progressDialog.dismiss();
             Toast.makeText(getContext(), "Failed to confirm ride: " + e.getMessage(), Toast.LENGTH_LONG).show();
         });
     }
 
-    private void adjustPoints(Ride ride) {
-        DatabaseReference riderRef = FirebaseDatabase.getInstance().getReference("users").child(ride.getRiderEmail()).child("points");
-        DatabaseReference driverRef = FirebaseDatabase.getInstance().getReference("users").child(ride.getDriverEmail()).child("points");
+    private void adjustPoints(Ride ride, Runnable onComplete) {
+        DatabaseReference riderRef = FirebaseDatabase.getInstance()
+                .getReference("users").child(sanitizeEmail(ride.getRiderEmail())).child("points");
+        DatabaseReference driverRef = FirebaseDatabase.getInstance()
+                .getReference("users").child(sanitizeEmail(ride.getDriverEmail())).child("points");
 
-        // Get current rider points
-        riderRef.get().addOnSuccessListener(snapshot -> {
-            Long riderPoints = snapshot.getValue(Long.class);
+        riderRef.get().addOnSuccessListener(riderSnapshot -> {
+            Long riderPoints = riderSnapshot.getValue(Long.class);
             if (riderPoints == null) riderPoints = 0L;
             riderRef.setValue(riderPoints - 50);
-        });
 
-        // Get current driver points
-        driverRef.get().addOnSuccessListener(snapshot -> {
-            Long driverPoints = snapshot.getValue(Long.class);
-            if (driverPoints == null) driverPoints = 0L;
-            driverRef.setValue(driverPoints + 50);
+            driverRef.get().addOnSuccessListener(driverSnapshot -> {
+                Long driverPoints = driverSnapshot.getValue(Long.class);
+                if (driverPoints == null) driverPoints = 0L;
+                driverRef.setValue(driverPoints + 50);
+
+                // Only after adjusting points we continue
+                if (onComplete != null) {
+                    onComplete.run();
+                }
+            }).addOnFailureListener(e -> {
+                Toast.makeText(getContext(), "Failed to update driver points", Toast.LENGTH_LONG).show();
+            });
+        }).addOnFailureListener(e -> {
+            Toast.makeText(getContext(), "Failed to update rider points", Toast.LENGTH_LONG).show();
         });
     }
-
 
     private void moveToHistory(Ride ride, String key) {
         DatabaseReference historyRef = FirebaseDatabase.getInstance().getReference("history");
 
-        // Add the ride to history and remove from accepted rides
-        historyRef.child(key).setValue(ride);
-        dbRef.child(key).removeValue();
+        historyRef.child(key).setValue(ride).addOnSuccessListener(unused -> {
+            dbRef.child(key).removeValue(); // Remove after success
+        }).addOnFailureListener(e -> {
+            Toast.makeText(getContext(), "Failed to move ride to history: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        });
+    }
+
+    private String sanitizeEmail(String email) {
+        return email.replace(".", ",");
     }
 }
-

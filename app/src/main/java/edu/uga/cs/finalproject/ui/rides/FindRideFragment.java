@@ -94,7 +94,7 @@ public class FindRideFragment extends Fragment {
             addToAcceptedList(ride, key);
 
             // Navigate to the AcceptedRidesFragment
-            navigateToAcceptedRideFragment();
+            navigateToRideFragment();
         }).addOnFailureListener(e -> {
             Toast.makeText(getContext(), "Failed to accept ride: " + e.getMessage(), Toast.LENGTH_LONG).show();
         });
@@ -102,21 +102,37 @@ public class FindRideFragment extends Fragment {
 
     // Method to add the accepted ride to both rider and driver's accepted list
     private void addToAcceptedList(Ride ride, String key) {
+        String currentUserEmail = FirebaseAuth.getInstance().getCurrentUser().getEmail();
+
+        String riderEmail, driverEmail;
+        if ("offer".equals(ride.getType())) {
+            riderEmail = currentUserEmail;
+            driverEmail = ride.getEmail();
+        } else if ("request".equals(ride.getType())) {
+            driverEmail = currentUserEmail;
+            riderEmail = ride.getEmail();
+        } else {
+            return; // Unknown type, fail silently
+        }
+
         DatabaseReference riderRef = FirebaseDatabase.getInstance().getReference("users")
-                .child(ride.getRiderEmail()).child("acceptedRides");
+                .child(riderEmail.replace(".", ",")).child("acceptedRides");
         DatabaseReference driverRef = FirebaseDatabase.getInstance().getReference("users")
-                .child(ride.getDriverEmail()).child("acceptedRides");
+                .child(driverEmail.replace(".", ",")).child("acceptedRides");
 
         riderRef.child(key).setValue(ride);
         driverRef.child(key).setValue(ride);
     }
 
     // Navigate to the AcceptedRidesFragment
-    private void navigateToAcceptedRideFragment() {
+    private void navigateToRideFragment() {
         // Replace this with actual navigation code
         // Example: using Navigation Component
-        NavController navController = Navigation.findNavController(getView());
-        navController.navigate(R.id.action_myRidesFragment_to_acceptedRidesFragment);
+        View view = getView();
+        if (view != null) {
+            NavController navController = Navigation.findNavController(view);
+            navController.navigate(R.id.action_findRideFragment_to_RidesFragment);
+        }
     }
 
 }

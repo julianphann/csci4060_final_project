@@ -27,7 +27,11 @@
         android:id="@+id/findRideFragment"
         android:name="edu.uga.cs.finalproject.ui.rides.FindRideFragment"
         android:label="Find Ride"
-        tools:layout="@layout/fragment_find_ride" />
+        tools:layout="@layout/fragment_find_ride">
+        <action
+            android:id="@+id/action_findRideFragment_to_RidesFragment"
+            app:destination="@id/nav_rides" />
+    </fragment>
 
     <fragment
         android:id="@+id/postRideFragment"
@@ -45,6 +49,8 @@
             android:id="@+id/action_myRidesFragment_to_acceptedRidesFragment"
             app:destination="@id/acceptedRidesFragment" />
     </fragment>
+
+
 
     <fragment
         android:id="@+id/acceptedRidesFragment"
