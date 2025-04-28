@@ -102,7 +102,7 @@ public class FindRideFragment extends Fragment {
 
         dbRef.child(key).updateChildren(updates)
                 .addOnSuccessListener(unused -> {
-                    Toast.makeText(getContext(), "Ride accepted! Please confirm after completion.", Toast.LENGTH_LONG).show();
+                    Toast.makeText(getContext(), "After Confirming, +50 for driver, -50 for  rider.", Toast.LENGTH_LONG).show();
                     addToAcceptedList(ride, key);
                 })
                 .addOnFailureListener(e -> {

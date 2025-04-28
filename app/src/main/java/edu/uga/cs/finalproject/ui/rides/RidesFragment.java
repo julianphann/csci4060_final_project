@@ -45,7 +45,12 @@ public class RidesFragment extends Fragment {
         Query query = dbRef.orderByChild("timestamp");
 
         FirebaseRecyclerOptions<Ride> options = new FirebaseRecyclerOptions.Builder<Ride>()
-                .setQuery(query, Ride.class)
+                .setQuery(
+                        FirebaseDatabase.getInstance().getReference("rides")
+                                .orderByChild("status")
+                                .equalTo("accepted"),  // <-- Only accepted rides
+                        Ride.class
+                )
                 .build();
 
         RideAdapter.OnRideClickListener listener = new RideAdapter.OnRideClickListener() {
