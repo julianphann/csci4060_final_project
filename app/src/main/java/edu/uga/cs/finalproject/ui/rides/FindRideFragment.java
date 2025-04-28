@@ -8,8 +8,6 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
-import androidx.navigation.NavController;
-import androidx.navigation.Navigation;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
@@ -50,12 +48,12 @@ public class FindRideFragment extends Fragment {
         adapter = new RideAdapter(options, (ride, key) -> acceptRide(ride, key)) {
             @Override
             protected void onBindViewHolder(@NonNull RideViewHolder holder, int position, @NonNull Ride model) {
-                // Check if the ride belongs to current user
+                // Hide rides created by current user
                 if (model.getEmail() != null && model.getEmail().equals(currentUserEmail)) {
                     holder.itemView.setVisibility(View.GONE);
-                    holder.itemView.setLayoutParams(new RecyclerView.LayoutParams(0, 0)); // Hide it
+                    holder.itemView.setLayoutParams(new RecyclerView.LayoutParams(0, 0));
                 } else {
-                    super.onBindViewHolder(holder, position, model); // Otherwise show normally
+                    super.onBindViewHolder(holder, position, model);
                 }
             }
         };
@@ -98,9 +96,9 @@ public class FindRideFragment extends Fragment {
         }
 
         dbRef.child(key).updateChildren(updates).addOnSuccessListener(unused -> {
-            Toast.makeText(getContext(), "Ride accepted!", Toast.LENGTH_SHORT).show();
+            Toast.makeText(getContext(), "You have accepted the ride. Please confirm after the ride has been completed.", Toast.LENGTH_LONG).show();
             addToAcceptedList(ride, key);
-            navigateToRideFragment();
+            // Removed navigation to RidesFragment
         }).addOnFailureListener(e -> {
             Toast.makeText(getContext(), "Failed to accept ride: " + e.getMessage(), Toast.LENGTH_LONG).show();
         });
@@ -128,13 +126,6 @@ public class FindRideFragment extends Fragment {
         riderRef.child(key).setValue(ride);
         driverRef.child(key).setValue(ride);
     }
-
-    private void navigateToRideFragment() {
-        View view = getView();
-        if (view != null) {
-            NavController navController = Navigation.findNavController(view);
-            navController.navigate(R.id.action_findRideFragment_to_RidesFragment);
-        }
-    }
 }
+
 
