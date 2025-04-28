@@ -41,8 +41,8 @@ public class RidesFragment extends Fragment {
 
         String userEmail = mAuth.getCurrentUser().getEmail();
 
-        // 🧹 Updated Query: show rides accepted by me and not yet completed
-        Query query = dbRef.orderByChild("status").equalTo("accepted");
+        // 🔥 Query: Order by timestamp (soonest to latest)
+        Query query = dbRef.orderByChild("timestamp");
 
         FirebaseRecyclerOptions<Ride> options = new FirebaseRecyclerOptions.Builder<Ride>()
                 .setQuery(query, Ride.class)
@@ -51,7 +51,6 @@ public class RidesFragment extends Fragment {
         RideAdapter.OnRideClickListener listener = new RideAdapter.OnRideClickListener() {
             @Override
             public void onRideClick(Ride ride, String key) {
-                // Only confirm if ride isn't already completed
                 if (ride.getStatus() == null || !ride.getStatus().equals("completed")) {
                     confirmRideCompletion(ride, key);
                 } else {
@@ -62,7 +61,9 @@ public class RidesFragment extends Fragment {
 
         adapter = new RideAdapter(options, listener, "Confirm Ride");
 
-        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+        // 🔥 LayoutManager to show soonest → latest (no reverse needed)
+        LinearLayoutManager layoutManager = new LinearLayoutManager(getContext());
+        recyclerView.setLayoutManager(layoutManager);
         recyclerView.setAdapter(adapter);
 
         return rootView;
@@ -99,11 +100,9 @@ public class RidesFragment extends Fragment {
         }
 
         dbRef.child(key).updateChildren(updates).addOnSuccessListener(unused -> {
-            // After updating riderConfirmed/driverConfirmed, check if BOTH are confirmed
             dbRef.child(key).get().addOnSuccessListener(snapshot -> {
                 Ride updatedRide = snapshot.getValue(Ride.class);
                 if (updatedRide != null && updatedRide.isDriverConfirmed() && updatedRide.isRiderConfirmed()) {
-                    // Now mark it as fully confirmed and completed
                     Map<String, Object> finalUpdates = new HashMap<>();
                     finalUpdates.put("isConfirmed", true);
                     finalUpdates.put("status", "completed");
@@ -122,7 +121,6 @@ public class RidesFragment extends Fragment {
         });
     }
 
-
     private void adjustPoints(Ride ride) {
         if (ride.getRiderEmail() == null || ride.getDriverEmail() == null) return;
 
@@ -135,7 +133,7 @@ public class RidesFragment extends Fragment {
         riderPointsRef.get().addOnSuccessListener(snapshot -> {
             Long riderPoints = snapshot.getValue(Long.class);
             if (riderPoints == null) riderPoints = 0L;
-            long newPoints = Math.max(0, riderPoints - 50);  // no negative points
+            long newPoints = Math.max(0, riderPoints - 50);
             riderPointsRef.setValue(newPoints);
         });
 
