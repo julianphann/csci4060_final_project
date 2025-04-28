@@ -42,25 +42,30 @@ public class RideAdapter extends FirebaseRecyclerAdapter<Ride, RideAdapter.RideV
             holder.status.setText("Status: completed");
             holder.acceptButton.setBackgroundColor(Color.GRAY);  // Gray the button
             holder.acceptButton.setEnabled(false);  // Disable the button
+            holder.acceptButton.setText("Ride Completed");
         } else if (model.isDriverConfirmed()) {
-            holder.status.setText("Status: accepted");
+            holder.status.setText("Status: Driver Accepted");
             holder.acceptButton.setBackgroundColor(Color.GRAY);  // Gray the button
-            holder.acceptButton.setEnabled(false);  // Disable the button
+            holder.acceptButton.setEnabled(true);  // Keep the button enabled for rider confirmation
+            holder.acceptButton.setText("Confirm Ride"); // Text indicating rider confirmation needed
+        } else if (model.isRiderConfirmed()) {
+            holder.status.setText("Status: Rider Confirmed");
+            holder.acceptButton.setBackgroundColor(Color.GRAY);  // Gray the button
+            holder.acceptButton.setEnabled(true);  // Keep the button enabled for driver confirmation
+            holder.acceptButton.setText("Confirm Ride"); // Text indicating driver confirmation needed
         } else {
             holder.status.setText("Status: " + model.getStatus());
             holder.acceptButton.setBackgroundColor(Color.BLUE);  // Active button color
             holder.acceptButton.setEnabled(true);  // Enable the button
+            holder.acceptButton.setText("Accept Ride"); // Text for accepting the ride
         }
 
-        // Set the "Accepted by" text
-        if (model.getDriverEmail() != null && !model.getDriverEmail().isEmpty()) {
+        // Set the "Accepted by" text to show the driver's email if they have confirmed
+        if (model.isDriverConfirmed()) {
             holder.acceptedBy.setText("Accepted by: " + model.getDriverEmail());
         } else {
             holder.acceptedBy.setText("Accepted by: Not accepted yet");
         }
-
-        // Set dynamic button text (for accept button)
-        holder.acceptButton.setText(buttonText);
 
         // Handle item click
         holder.itemView.setOnClickListener(v -> {
@@ -68,12 +73,20 @@ public class RideAdapter extends FirebaseRecyclerAdapter<Ride, RideAdapter.RideV
             listener.onRideClick(model, key);
         });
 
-        // Handle button click
+        // Handle button click (confirm ride completion or edit ride)
         holder.acceptButton.setOnClickListener(v -> {
             String key = getRef(position).getKey();
-            listener.onRideClick(model, key);
+            // Check if the ride is in MyRides or AcceptedRides
+            if (model.isDriverConfirmed() || model.isRiderConfirmed()) {
+                // This logic should be for confirming the ride completion
+                listener.onRideClick(model, key);
+            } else {
+                // This logic should be for editing the ride
+                listener.onRideClick(model, key);
+            }
         });
     }
+
 
     @NonNull
     @Override
