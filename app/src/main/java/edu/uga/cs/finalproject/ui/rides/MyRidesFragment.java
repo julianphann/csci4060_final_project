@@ -17,7 +17,6 @@ import com.firebase.ui.database.FirebaseRecyclerOptions;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.DatabaseReference;
-import com.google.firebase.database.Query;
 
 import edu.uga.cs.finalproject.R;
 import edu.uga.cs.finalproject.RideAdapter;
@@ -39,21 +38,38 @@ public class MyRidesFragment extends Fragment {
         dbRef = FirebaseDatabase.getInstance().getReference("rides");
 
         String userEmail = mAuth.getCurrentUser().getEmail();
-        Query query = dbRef.orderByChild("email").equalTo(userEmail);
 
         FirebaseRecyclerOptions<Ride> options = new FirebaseRecyclerOptions.Builder<Ride>()
-                .setQuery(query, Ride.class)
+                .setQuery(dbRef, Ride.class) // Load all rides
                 .build();
 
         RideAdapter.OnRideClickListener listener = new RideAdapter.OnRideClickListener() {
             @Override
             public void onRideClick(Ride ride, String key) {
-                // When user clicks on their own ride, let them edit it
-                editRideDialog(ride, key);
+                if (ride.getEmail() != null && ride.getEmail().equals(userEmail)) {
+                    // Only allow edit if user posted this ride
+                    editRideDialog(ride, key);
+                }
             }
         };
 
-        adapter = new RideAdapter(options, listener, "Edit Ride");
+        adapter = new RideAdapter(options, listener, "Edit Ride") {
+            @Override
+            protected void onBindViewHolder(@NonNull RideViewHolder holder, int position, @NonNull Ride model) {
+                String email = mAuth.getCurrentUser().getEmail();
+
+                boolean isPostedByUser = model.getEmail() != null && model.getEmail().equals(email);
+                boolean isAcceptedByUser = (model.getRiderEmail() != null && model.getRiderEmail().equals(email)) ||
+                        (model.getDriverEmail() != null && model.getDriverEmail().equals(email));
+
+                if (isPostedByUser || isAcceptedByUser) {
+                    super.onBindViewHolder(holder, position, model);
+                } else {
+                    holder.itemView.setVisibility(View.GONE);
+                    holder.itemView.setLayoutParams(new RecyclerView.LayoutParams(0, 0));
+                }
+            }
+        };
 
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(adapter);
@@ -77,24 +93,20 @@ public class MyRidesFragment extends Fragment {
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
         builder.setTitle("Edit Ride");
 
-        // Create a layout for multiple input fields
         LinearLayout layout = new LinearLayout(requireContext());
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setPadding(50, 40, 50, 10);
 
-        // Destination input
         final EditText inputDestination = new EditText(requireContext());
         inputDestination.setHint("Destination");
         inputDestination.setText(ride.getDestination());
         layout.addView(inputDestination);
 
-        // Pickup input
         final EditText inputPickup = new EditText(requireContext());
         inputPickup.setHint("Pickup");
         inputPickup.setText(ride.getPickup());
         layout.addView(inputPickup);
 
-        // Date/Time input
         final EditText inputDateTime = new EditText(requireContext());
         inputDateTime.setHint("Date/Time");
         inputDateTime.setText(ride.getDateTime());
@@ -103,7 +115,6 @@ public class MyRidesFragment extends Fragment {
         builder.setView(layout);
 
         builder.setPositiveButton("Save", (dialog, which) -> {
-            // Update ride in database
             String newDestination = inputDestination.getText().toString();
             String newPickup = inputPickup.getText().toString();
             String newDateTime = inputDateTime.getText().toString();
@@ -122,11 +133,9 @@ public class MyRidesFragment extends Fragment {
         builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
 
         builder.setNeutralButton("Delete Ride", (dialog, which) -> {
-            // Delete ride from database
             dbRef.child(key).removeValue();
         });
 
         builder.show();
     }
-
 }
