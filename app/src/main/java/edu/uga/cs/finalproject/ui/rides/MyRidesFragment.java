@@ -1,12 +1,15 @@
 package edu.uga.cs.finalproject.ui.rides;
 
 import android.app.AlertDialog;
+import android.app.DatePickerDialog;
+import android.app.TimePickerDialog;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.LinearLayout;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
@@ -17,6 +20,10 @@ import com.firebase.ui.database.FirebaseRecyclerOptions;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.DatabaseReference;
+
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Locale;
 
 import edu.uga.cs.finalproject.R;
 import edu.uga.cs.finalproject.RideAdapter;
@@ -89,6 +96,36 @@ public class MyRidesFragment extends Fragment {
         adapter.stopListening();
     }
 
+    private void showDateTimePicker(EditText inputDateTime) {
+        final Calendar calendar = Calendar.getInstance();
+
+        // First, show DatePickerDialog
+        DatePickerDialog datePickerDialog = new DatePickerDialog(requireContext(),
+                (view, year, month, dayOfMonth) -> {
+                    calendar.set(Calendar.YEAR, year);
+                    calendar.set(Calendar.MONTH, month);
+                    calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth);
+
+                    // After picking date, show TimePickerDialog
+                    TimePickerDialog timePickerDialog = new TimePickerDialog(requireContext(),
+                            (timeView, hourOfDay, minute) -> {
+                                calendar.set(Calendar.HOUR_OF_DAY, hourOfDay);
+                                calendar.set(Calendar.MINUTE, minute);
+
+                                // Format selected date and time
+                                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault());
+                                String selectedDateTime = sdf.format(calendar.getTime());
+
+                                inputDateTime.setText(selectedDateTime);
+                            }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), false);
+
+                    timePickerDialog.show();
+                }, calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH), calendar.get(Calendar.DAY_OF_MONTH));
+
+        datePickerDialog.show();
+    }
+
+
     private void editRideDialog(Ride ride, String key) {
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
         builder.setTitle("Edit Ride");
@@ -110,14 +147,38 @@ public class MyRidesFragment extends Fragment {
         final EditText inputDateTime = new EditText(requireContext());
         inputDateTime.setHint("Date/Time");
         inputDateTime.setText(ride.getDateTime());
+        inputDateTime.setFocusable(false); // prevent manual typing
+        inputDateTime.setClickable(true);
+
+        inputDateTime.setOnClickListener(v -> {
+            // Show Date and Time Picker dialog here
+            // You already implemented this
+            showDateTimePicker(inputDateTime);
+        });
+
         layout.addView(inputDateTime);
 
         builder.setView(layout);
 
-        builder.setPositiveButton("Save", (dialog, which) -> {
-            String newDestination = inputDestination.getText().toString();
-            String newPickup = inputPickup.getText().toString();
-            String newDateTime = inputDateTime.getText().toString();
+        // Neutral button for Delete
+        builder.setNeutralButton("Delete Ride", (dialog, which) -> {
+            dbRef.child(key).removeValue();
+        });
+
+        // Cancel button
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
+
+        // We won't setPositiveButton here, instead we will handle it manually
+        builder.setPositiveButton("Save", null);
+
+        AlertDialog dialog = builder.create();
+        dialog.show();
+
+        // Now set Save button behavior manually
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
+            String newDestination = inputDestination.getText().toString().trim();
+            String newPickup = inputPickup.getText().toString().trim();
+            String newDateTime = inputDateTime.getText().toString().trim();
 
             if (!newDestination.isEmpty()) {
                 dbRef.child(key).child("destination").setValue(newDestination);
@@ -126,16 +187,13 @@ public class MyRidesFragment extends Fragment {
                 dbRef.child(key).child("pickup").setValue(newPickup);
             }
             if (!newDateTime.isEmpty()) {
-                dbRef.child(key).child("dateTime").setValue(newDateTime);
+                dbRef.child(key).child("datetime").setValue(newDateTime);
             }
+
+            dialog.dismiss(); // Close after saving
+
+            // Optional: Show success Toast
+            Toast.makeText(requireContext(), "Ride updated successfully!", Toast.LENGTH_SHORT).show();
         });
-
-        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
-
-        builder.setNeutralButton("Delete Ride", (dialog, which) -> {
-            dbRef.child(key).removeValue();
-        });
-
-        builder.show();
     }
 }
