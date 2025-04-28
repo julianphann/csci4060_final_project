@@ -17,6 +17,8 @@ public class Ride {
     private boolean driverConfirmed;
     private boolean isConfirmed;
 
+    private long timestamp;
+
     // Default constructor required for Firebase
     public Ride() {
     }
@@ -140,5 +142,7 @@ public class Ride {
     public void setConfirmed(boolean confirmed) {
         isConfirmed = confirmed;
     }
+    public long getTimestamp() { return timestamp; }
+    public void setTimestamp(long timestamp) { this.timestamp = timestamp; }
 
 }

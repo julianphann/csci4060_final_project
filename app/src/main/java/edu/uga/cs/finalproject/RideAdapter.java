@@ -13,6 +13,10 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.firebase.ui.database.FirebaseRecyclerAdapter;
 import com.firebase.ui.database.FirebaseRecyclerOptions;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+
 public class RideAdapter extends FirebaseRecyclerAdapter<Ride, RideAdapter.RideViewHolder> {
 
     // Interface for item click handling
@@ -31,60 +35,67 @@ public class RideAdapter extends FirebaseRecyclerAdapter<Ride, RideAdapter.RideV
 
     @Override
     protected void onBindViewHolder(@NonNull RideViewHolder holder, int position, @NonNull Ride model) {
+        // Format timestamp to readable date
+        String formattedDate = formatTimestamp(model.getTimestamp());
+
         holder.destination.setText("To: " + model.getDestination());
         holder.pickup.setText("From: " + model.getPickup());
-        holder.dateTime.setText("Date/Time: " + model.getDateTime());
+        holder.dateTime.setText("When: " + formattedDate);  // Changed to use formatted timestamp
         holder.type.setText("Type: " + model.getType());
         holder.email.setText("Posted by: " + model.getEmail());
 
-        // Set the status based on the confirmation state
+        // Status handling based on confirmation state
+        String statusText;
+        int buttonColor;
+        boolean buttonEnabled;
+        String buttonText;
+
         if (model.isRiderConfirmed() && model.isDriverConfirmed()) {
-            holder.status.setText("Status: completed");
-            holder.acceptButton.setBackgroundColor(Color.GRAY);  // Gray the button
-            holder.acceptButton.setEnabled(false);  // Disable the button
-            holder.acceptButton.setText("Ride Completed");
+            statusText = "Status: Completed";
+            buttonColor = Color.GRAY;
+            buttonEnabled = false;
+            buttonText = "Completed";
         } else if (model.isDriverConfirmed()) {
-            holder.status.setText("Status: Driver Accepted");
-            holder.acceptButton.setBackgroundColor(Color.GRAY);  // Gray the button
-            holder.acceptButton.setEnabled(true);  // Keep the button enabled for rider confirmation
-            holder.acceptButton.setText("Confirm Ride"); // Text indicating rider confirmation needed
+            statusText = "Status: Driver Accepted";
+            buttonColor = Color.parseColor("#FFA500"); // Orange
+            buttonEnabled = true;
+            buttonText = "Confirm as Rider";
         } else if (model.isRiderConfirmed()) {
-            holder.status.setText("Status: Rider Confirmed");
-            holder.acceptButton.setBackgroundColor(Color.GRAY);  // Gray the button
-            holder.acceptButton.setEnabled(true);  // Keep the button enabled for driver confirmation
-            holder.acceptButton.setText("Confirm Ride"); // Text indicating driver confirmation needed
+            statusText = "Status: Rider Confirmed";
+            buttonColor = Color.parseColor("#FFA500"); // Orange
+            buttonEnabled = true;
+            buttonText = "Confirm as Driver";
         } else {
-            holder.status.setText("Status: " + model.getStatus());
-            holder.acceptButton.setBackgroundColor(Color.BLUE);  // Active button color
-            holder.acceptButton.setEnabled(true);  // Enable the button
-            holder.acceptButton.setText("Accept Ride"); // Text for accepting the ride
+            statusText = "Status: " + model.getStatus();
+            buttonColor = Color.BLUE;
+            buttonEnabled = true;
+            buttonText = this.buttonText;
         }
 
-        // Set the "Accepted by" text to show the driver's email if they have confirmed
-        if (model.isDriverConfirmed()) {
-            holder.acceptedBy.setText("Accepted by: " + model.getDriverEmail());
-        } else {
-            holder.acceptedBy.setText("Accepted by: Not accepted yet");
+        holder.status.setText(statusText);
+        holder.acceptButton.setBackgroundColor(buttonColor);
+        holder.acceptButton.setEnabled(buttonEnabled);
+        holder.acceptButton.setText(buttonText);
+
+        // Accepted by information
+        String acceptedByText = model.getDriverEmail() != null ?
+                "Driver: " + model.getDriverEmail() : "Not accepted yet";
+        holder.acceptedBy.setText(acceptedByText);
+
+        // Click listeners
+        String key = getRef(position).getKey();
+        holder.itemView.setOnClickListener(v -> listener.onRideClick(model, key));
+        holder.acceptButton.setOnClickListener(v -> listener.onRideClick(model, key));
+    }
+
+    // Add this helper method to format timestamps
+    private String formatTimestamp(long timestamp) {
+        try {
+            SimpleDateFormat sdf = new SimpleDateFormat("EEE, MMM d • h:mm a", Locale.getDefault());
+            return sdf.format(new Date(timestamp));
+        } catch (Exception e) {
+            return "Date not available";
         }
-
-        // Handle item click
-        holder.itemView.setOnClickListener(v -> {
-            String key = getRef(position).getKey();
-            listener.onRideClick(model, key);
-        });
-
-        // Handle button click (confirm ride completion or edit ride)
-        holder.acceptButton.setOnClickListener(v -> {
-            String key = getRef(position).getKey();
-            // Check if the ride is in MyRides or AcceptedRides
-            if (model.isDriverConfirmed() || model.isRiderConfirmed()) {
-                // This logic should be for confirming the ride completion
-                listener.onRideClick(model, key);
-            } else {
-                // This logic should be for editing the ride
-                listener.onRideClick(model, key);
-            }
-        });
     }
 
 

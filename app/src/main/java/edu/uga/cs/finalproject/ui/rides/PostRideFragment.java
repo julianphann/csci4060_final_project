@@ -36,6 +36,7 @@ public class PostRideFragment extends Fragment {
     private EditText pickupEditText, destinationEditText, dateTimePicker;
     private RadioGroup radioGroup;
     private Button postRideButton;
+    private Calendar selectedDateTime;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -43,6 +44,7 @@ public class PostRideFragment extends Fragment {
 
         mAuth = FirebaseAuth.getInstance();
         dbRef = FirebaseDatabase.getInstance().getReference("rides");
+        selectedDateTime = Calendar.getInstance();
 
         pickupEditText = rootView.findViewById(R.id.pickupEditText);
         destinationEditText = rootView.findViewById(R.id.destinationEditText);
@@ -50,7 +52,7 @@ public class PostRideFragment extends Fragment {
         radioGroup = rootView.findViewById(R.id.radioGroup);
         postRideButton = rootView.findViewById(R.id.postRideButton);
 
-        // Show date and time picker when clicked
+        // Date/Time Picker setup
         dateTimePicker.setFocusable(false);
         dateTimePicker.setClickable(true);
         dateTimePicker.setOnClickListener(v -> showDateTimePicker());
@@ -61,39 +63,34 @@ public class PostRideFragment extends Fragment {
     }
 
     private void showDateTimePicker() {
-        final Calendar calendar = Calendar.getInstance();
+        final Calendar currentDate = Calendar.getInstance();
 
         DatePickerDialog datePickerDialog = new DatePickerDialog(
                 requireContext(),
-                (DatePicker view, int year, int month, int dayOfMonth) -> {
-                    calendar.set(Calendar.YEAR, year);
-                    calendar.set(Calendar.MONTH, month);
-                    calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth);
+                (view, year, month, dayOfMonth) -> {
+                    selectedDateTime.set(year, month, dayOfMonth);
 
-                    TimePickerDialog timePickerDialog = new TimePickerDialog(
+                    new TimePickerDialog(
                             requireContext(),
-                            (TimePicker timeView, int hourOfDay, int minute) -> {
-                                calendar.set(Calendar.HOUR_OF_DAY, hourOfDay);
-                                calendar.set(Calendar.MINUTE, minute);
+                            (timeView, hourOfDay, minute) -> {
+                                selectedDateTime.set(Calendar.HOUR_OF_DAY, hourOfDay);
+                                selectedDateTime.set(Calendar.MINUTE, minute);
 
-                                SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault());
-                                dateTimePicker.setText(sdf.format(calendar.getTime()));
+                                // Update display format
+                                SimpleDateFormat sdf = new SimpleDateFormat("MMM dd, yyyy hh:mm a", Locale.getDefault());
+                                dateTimePicker.setText(sdf.format(selectedDateTime.getTime()));
                             },
-                            calendar.get(Calendar.HOUR_OF_DAY),
-                            calendar.get(Calendar.MINUTE),
+                            currentDate.get(Calendar.HOUR_OF_DAY),
+                            currentDate.get(Calendar.MINUTE),
                             false
-                    );
-
-                    timePickerDialog.show();
+                    ).show();
                 },
-                calendar.get(Calendar.YEAR),
-                calendar.get(Calendar.MONTH),
-                calendar.get(Calendar.DAY_OF_MONTH)
+                currentDate.get(Calendar.YEAR),
+                currentDate.get(Calendar.MONTH),
+                currentDate.get(Calendar.DAY_OF_MONTH)
         );
 
-        // Optional: Only allow dates from today onward
         datePickerDialog.getDatePicker().setMinDate(System.currentTimeMillis());
-
         datePickerDialog.show();
     }
 
@@ -103,10 +100,14 @@ public class PostRideFragment extends Fragment {
 
         String pickup = pickupEditText.getText().toString().trim();
         String destination = destinationEditText.getText().toString().trim();
-        String datetime = dateTimePicker.getText().toString().trim();
 
-        if (pickup.isEmpty() || destination.isEmpty() || datetime.isEmpty() || selectedId == -1) {
+        if (pickup.isEmpty() || destination.isEmpty() || selectedId == -1) {
             Toast.makeText(getContext(), "Please fill in all fields and select offer/request.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        if (dateTimePicker.getText().toString().isEmpty()) {
+            Toast.makeText(getContext(), "Please select a date and time", Toast.LENGTH_SHORT).show();
             return;
         }
 
@@ -117,19 +118,26 @@ public class PostRideFragment extends Fragment {
         ride.put("type", type);
         ride.put("pickup", pickup);
         ride.put("destination", destination);
-        ride.put("datetime", datetime);  // this will not be null now
+        ride.put("timestamp", selectedDateTime.getTimeInMillis());
         ride.put("status", "pending");
+        ride.put("riderConfirmed", false);
+        ride.put("driverConfirmed", false);
 
-        dbRef.push().setValue(ride).addOnSuccessListener(aVoid -> {
-            Toast.makeText(getContext(), "Ride posted successfully!", Toast.LENGTH_SHORT).show();
-
-            pickupEditText.setText("");
-            destinationEditText.setText("");
-            dateTimePicker.setText("");
-            radioGroup.clearCheck();
-        }).addOnFailureListener(e -> {
-            Toast.makeText(getContext(), "Failed to post ride: " + e.getMessage(), Toast.LENGTH_LONG).show();
-        });
+        dbRef.push().setValue(ride)
+                .addOnSuccessListener(aVoid -> {
+                    Toast.makeText(getContext(), "Ride posted successfully!", Toast.LENGTH_SHORT).show();
+                    clearForm();
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(getContext(), "Failed to post ride: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                });
     }
 
+    private void clearForm() {
+        pickupEditText.setText("");
+        destinationEditText.setText("");
+        dateTimePicker.setText("");
+        radioGroup.clearCheck();
+        selectedDateTime = Calendar.getInstance(); // Reset to current time
+    }
 }

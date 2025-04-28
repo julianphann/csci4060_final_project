@@ -13,8 +13,8 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.firebase.ui.database.FirebaseRecyclerOptions;
 import com.google.firebase.auth.FirebaseAuth;
-import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.Query;
 
 import java.util.HashMap;
@@ -35,12 +35,21 @@ public class FindRideFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_find_ride, container, false);
 
-        recyclerView = rootView.findViewById(R.id.recyclerView);
+        // Initialize database reference
         dbRef = FirebaseDatabase.getInstance().getReference("rides");
         currentUserEmail = FirebaseAuth.getInstance().getCurrentUser().getEmail();
 
-        // Now order by dateTime
-        Query query = dbRef.orderByChild("dateTime");
+        recyclerView = rootView.findViewById(R.id.recyclerView);
+        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
+
+        setupAdapter();
+        return rootView;
+    }
+
+    private void setupAdapter() {
+        // Query to get pending rides sorted by timestamp (soonest first)
+        Query query = dbRef.orderByChild("timestamp")
+                .startAt(System.currentTimeMillis());  // Only future rides
 
         FirebaseRecyclerOptions<Ride> options = new FirebaseRecyclerOptions.Builder<Ride>()
                 .setQuery(query, Ride.class)
@@ -48,42 +57,32 @@ public class FindRideFragment extends Fragment {
 
         adapter = new RideAdapter(options, (ride, key) -> acceptRide(ride, key), "Accept Ride") {
             @Override
-            protected void onBindViewHolder(@NonNull RideViewHolder holder, int position, @NonNull Ride model) {
-                if (model.getEmail() != null && model.getEmail().equals(currentUserEmail)) {
-                    // Hide your own rides
-                    holder.itemView.setVisibility(View.GONE);
-                    holder.itemView.setLayoutParams(new RecyclerView.LayoutParams(0, 0));
-                } else if (!"pending".equals(model.getStatus())) {
-                    // Hide non-pending rides
-                    holder.itemView.setVisibility(View.GONE);
-                    holder.itemView.setLayoutParams(new RecyclerView.LayoutParams(0, 0));
-                } else {
-                    // Show valid rides
+            public void onDataChanged() {
+                super.onDataChanged();
+                if (adapter.getItemCount() == 0) {
+                    Toast.makeText(getContext(), "No available rides found", Toast.LENGTH_SHORT).show();
+                }
+            }
+
+            @Override
+            protected void onBindViewHolder(@NonNull RideAdapter.RideViewHolder holder, int position, @NonNull Ride model) {
+                // Filter out user's own rides and non-pending status
+                if (shouldShowRide(model)) {
                     super.onBindViewHolder(holder, position, model);
+                } else {
+                    // Hide the item completely
+                    holder.itemView.setVisibility(View.GONE);
+                    holder.itemView.setLayoutParams(new RecyclerView.LayoutParams(0, 0));
                 }
             }
         };
 
-        recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(adapter);
-
-        return rootView;
     }
 
-    @Override
-    public void onStart() {
-        super.onStart();
-        if (adapter != null) {
-            adapter.startListening();
-        }
-    }
-
-    @Override
-    public void onStop() {
-        super.onStop();
-        if (adapter != null) {
-            adapter.stopListening();
-        }
+    private boolean shouldShowRide(Ride ride) {
+        return "pending".equals(ride.getStatus()) &&
+                !ride.getEmail().equals(currentUserEmail);
     }
 
     private void acceptRide(Ride ride, String key) {
@@ -101,34 +100,40 @@ public class FindRideFragment extends Fragment {
             updates.put("riderEmail", ride.getEmail());
         }
 
-        dbRef.child(key).updateChildren(updates).addOnSuccessListener(unused -> {
-            Toast.makeText(getContext(), "You have accepted the ride. Please confirm after the ride has been completed.", Toast.LENGTH_LONG).show();
-            addToAcceptedList(ride, key);
-        }).addOnFailureListener(e -> {
-            Toast.makeText(getContext(), "Failed to accept ride: " + e.getMessage(), Toast.LENGTH_LONG).show();
-        });
+        dbRef.child(key).updateChildren(updates)
+                .addOnSuccessListener(unused -> {
+                    Toast.makeText(getContext(), "Ride accepted! Please confirm after completion.", Toast.LENGTH_LONG).show();
+                    addToAcceptedList(ride, key);
+                })
+                .addOnFailureListener(e -> {
+                    Toast.makeText(getContext(), "Error: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                });
     }
 
     private void addToAcceptedList(Ride ride, String key) {
-        String currentUserEmail = FirebaseAuth.getInstance().getCurrentUser().getEmail();
-
         String riderEmail, driverEmail;
         if ("offer".equals(ride.getType())) {
             riderEmail = ride.getEmail();
-            driverEmail = currentUserEmail;
-        } else if ("request".equals(ride.getType())) {
-            driverEmail = ride.getEmail();
-            riderEmail = currentUserEmail;
+            driverEmail = FirebaseAuth.getInstance().getCurrentUser().getEmail();
         } else {
-            return;
+            driverEmail = ride.getEmail();
+            riderEmail = FirebaseAuth.getInstance().getCurrentUser().getEmail();
         }
 
-        DatabaseReference riderRef = FirebaseDatabase.getInstance().getReference("users")
-                .child(riderEmail.replace(".", ",")).child("acceptedRides");
-        DatabaseReference driverRef = FirebaseDatabase.getInstance().getReference("users")
-                .child(driverEmail.replace(".", ",")).child("acceptedRides");
+        DatabaseReference usersRef = FirebaseDatabase.getInstance().getReference("users");
+        usersRef.child(riderEmail.replace(".", ",")).child("acceptedRides").child(key).setValue(ride);
+        usersRef.child(driverEmail.replace(".", ",")).child("acceptedRides").child(key).setValue(ride);
+    }
 
-        riderRef.child(key).setValue(ride);
-        driverRef.child(key).setValue(ride);
+    @Override
+    public void onStart() {
+        super.onStart();
+        if (adapter != null) adapter.startListening();
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        if (adapter != null) adapter.stopListening();
     }
 }
