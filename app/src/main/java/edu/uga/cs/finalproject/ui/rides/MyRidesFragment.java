@@ -127,6 +127,12 @@ public class MyRidesFragment extends Fragment {
 
 
     private void editRideDialog(Ride ride, String key) {
+        // Prevent editing if status is accepted
+        if ("accepted".equalsIgnoreCase(ride.getStatus())) {
+            Toast.makeText(requireContext(), "Cannot edit a ride that has been accepted.", Toast.LENGTH_SHORT).show();
+            return; // Do not open the edit dialog
+        }
+
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
         builder.setTitle("Edit Ride");
 
@@ -147,34 +153,24 @@ public class MyRidesFragment extends Fragment {
         final EditText inputDateTime = new EditText(requireContext());
         inputDateTime.setHint("Date/Time");
         inputDateTime.setText(ride.getDateTime());
-        inputDateTime.setFocusable(false); // prevent manual typing
+        inputDateTime.setFocusable(false);
         inputDateTime.setClickable(true);
-
-        inputDateTime.setOnClickListener(v -> {
-            // Show Date and Time Picker dialog here
-            // You already implemented this
-            showDateTimePicker(inputDateTime);
-        });
-
+        inputDateTime.setOnClickListener(v -> showDateTimePicker(inputDateTime));
         layout.addView(inputDateTime);
 
         builder.setView(layout);
 
-        // Neutral button for Delete
         builder.setNeutralButton("Delete Ride", (dialog, which) -> {
             dbRef.child(key).removeValue();
         });
 
-        // Cancel button
         builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
 
-        // We won't setPositiveButton here, instead we will handle it manually
         builder.setPositiveButton("Save", null);
 
         AlertDialog dialog = builder.create();
         dialog.show();
 
-        // Now set Save button behavior manually
         dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
             String newDestination = inputDestination.getText().toString().trim();
             String newPickup = inputPickup.getText().toString().trim();
@@ -188,12 +184,20 @@ public class MyRidesFragment extends Fragment {
             }
             if (!newDateTime.isEmpty()) {
                 dbRef.child(key).child("datetime").setValue(newDateTime);
+
+                // **NEW: Also update the timestamp**
+                try {
+                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault());
+                    long newTimestamp = sdf.parse(newDateTime).getTime();
+                    dbRef.child(key).child("timestamp").setValue(newTimestamp);
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
 
-            dialog.dismiss(); // Close after saving
-
-            // Optional: Show success Toast
+            dialog.dismiss();
             Toast.makeText(requireContext(), "Ride updated successfully!", Toast.LENGTH_SHORT).show();
         });
+
     }
 }
