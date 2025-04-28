@@ -45,7 +45,7 @@ public class FindRideFragment extends Fragment {
                 .setQuery(query, Ride.class)
                 .build();
 
-        adapter = new RideAdapter(options, (ride, key) -> acceptRide(ride, key));
+        adapter = new RideAdapter(options, (ride, key) -> acceptRide(ride, key), "Accept Ride");
 
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(adapter);

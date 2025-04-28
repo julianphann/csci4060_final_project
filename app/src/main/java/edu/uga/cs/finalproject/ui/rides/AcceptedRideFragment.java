@@ -59,7 +59,7 @@ public class AcceptedRideFragment extends Fragment {
         };
 
         // Pass the listener to the adapter
-        adapter = new RideAdapter(options, listener);
+        adapter = new RideAdapter(options, listener, "Confirm Ride");
 
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(adapter);

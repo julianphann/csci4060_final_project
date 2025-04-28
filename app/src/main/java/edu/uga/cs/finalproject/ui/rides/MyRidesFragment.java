@@ -1,9 +1,12 @@
 package edu.uga.cs.finalproject.ui.rides;
 
+import android.app.AlertDialog;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.EditText;
+import android.widget.LinearLayout;
 
 import androidx.annotation.NonNull;
 import androidx.fragment.app.Fragment;
@@ -29,10 +32,8 @@ public class MyRidesFragment extends Fragment {
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
-        // Inflate the layout without DataBinding
         View rootView = inflater.inflate(R.layout.fragment_my_rides, container, false);
 
-        // Initialize RecyclerView
         recyclerView = rootView.findViewById(R.id.recyclerView);
         mAuth = FirebaseAuth.getInstance();
         dbRef = FirebaseDatabase.getInstance().getReference("rides");
@@ -44,17 +45,15 @@ public class MyRidesFragment extends Fragment {
                 .setQuery(query, Ride.class)
                 .build();
 
-        // Implement OnRideClickListener
         RideAdapter.OnRideClickListener listener = new RideAdapter.OnRideClickListener() {
             @Override
             public void onRideClick(Ride ride, String key) {
-                // Handle the click event for the ride (e.g., accept the ride, show details, etc.)
-                acceptRide(ride, key);
+                // When user clicks on their own ride, let them edit it
+                editRideDialog(ride, key);
             }
         };
 
-        // Pass the listener to the adapter
-        adapter = new RideAdapter(options, listener);
+        adapter = new RideAdapter(options, listener, "Edit Ride");
 
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(adapter);
@@ -74,9 +73,54 @@ public class MyRidesFragment extends Fragment {
         adapter.stopListening();
     }
 
-    private void acceptRide(Ride ride, String key) {
-        // Handle accepting the ride here
-        // For example, updating the ride's status in Firebase
-        // You can use the `key` to update the ride in the database
+    private void editRideDialog(Ride ride, String key) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
+        builder.setTitle("Edit Ride");
+
+        // Create a layout for multiple input fields
+        LinearLayout layout = new LinearLayout(requireContext());
+        layout.setOrientation(LinearLayout.VERTICAL);
+        layout.setPadding(50, 40, 50, 10);
+
+        // Destination input
+        final EditText inputDestination = new EditText(requireContext());
+        inputDestination.setHint("Destination");
+        inputDestination.setText(ride.getDestination());
+        layout.addView(inputDestination);
+
+        // Pickup input
+        final EditText inputPickup = new EditText(requireContext());
+        inputPickup.setHint("Pickup");
+        inputPickup.setText(ride.getPickup());
+        layout.addView(inputPickup);
+
+        // Date/Time input
+        final EditText inputDateTime = new EditText(requireContext());
+        inputDateTime.setHint("Date/Time");
+        inputDateTime.setText(ride.getDateTime());
+        layout.addView(inputDateTime);
+
+        builder.setView(layout);
+
+        builder.setPositiveButton("Save", (dialog, which) -> {
+            // Update ride in database
+            String newDestination = inputDestination.getText().toString();
+            String newPickup = inputPickup.getText().toString();
+            String newDateTime = inputDateTime.getText().toString();
+
+            if (!newDestination.isEmpty()) {
+                dbRef.child(key).child("destination").setValue(newDestination);
+            }
+            if (!newPickup.isEmpty()) {
+                dbRef.child(key).child("pickup").setValue(newPickup);
+            }
+            if (!newDateTime.isEmpty()) {
+                dbRef.child(key).child("dateTime").setValue(newDateTime);
+            }
+        });
+
+        builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
+
+        builder.show();
     }
 }

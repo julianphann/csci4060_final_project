@@ -12,7 +12,6 @@ import androidx.recyclerview.widget.RecyclerView;
 import com.firebase.ui.database.FirebaseRecyclerAdapter;
 import com.firebase.ui.database.FirebaseRecyclerOptions;
 
-
 public class RideAdapter extends FirebaseRecyclerAdapter<Ride, RideAdapter.RideViewHolder> {
 
     // Interface for item click handling
@@ -21,11 +20,13 @@ public class RideAdapter extends FirebaseRecyclerAdapter<Ride, RideAdapter.RideV
     }
 
     private OnRideClickListener listener;
+    private String buttonText; // <- New field for button text
 
-    // Constructor where we pass both Firebase options and the listener
-    public RideAdapter(@NonNull FirebaseRecyclerOptions<Ride> options, OnRideClickListener listener) {
+    // Updated constructor: takes both listener and button text
+    public RideAdapter(@NonNull FirebaseRecyclerOptions<Ride> options, OnRideClickListener listener, String buttonText) {
         super(options);
         this.listener = listener;
+        this.buttonText = buttonText;
     }
 
     @Override
@@ -35,19 +36,23 @@ public class RideAdapter extends FirebaseRecyclerAdapter<Ride, RideAdapter.RideV
         holder.dateTime.setText("Date/Time: " + model.getDateTime());
         holder.status.setText("Status: " + model.getStatus());
         holder.type.setText("Type: " + model.getType());
-        holder.email.setText("Posted by: " + model.getEmail());  // ← This is what was missing
+        holder.email.setText("Posted by: " + model.getEmail());
 
+        // Set dynamic button text
+        holder.acceptButton.setText(buttonText);
+
+        // Handle item click
         holder.itemView.setOnClickListener(v -> {
             String key = getRef(position).getKey();
             listener.onRideClick(model, key);
         });
 
+        // Handle button click
         holder.acceptButton.setOnClickListener(v -> {
             String key = getRef(position).getKey();
             listener.onRideClick(model, key);
         });
     }
-
 
     @NonNull
     @Override
@@ -59,7 +64,7 @@ public class RideAdapter extends FirebaseRecyclerAdapter<Ride, RideAdapter.RideV
 
     // ViewHolder to hold the individual ride item views
     public static class RideViewHolder extends RecyclerView.ViewHolder {
-        TextView destination, pickup, dateTime, status, type, email; // ← Add email
+        TextView destination, pickup, dateTime, status, type, email;
         Button acceptButton;
 
         public RideViewHolder(@NonNull View itemView) {
@@ -69,9 +74,8 @@ public class RideAdapter extends FirebaseRecyclerAdapter<Ride, RideAdapter.RideV
             dateTime = itemView.findViewById(R.id.text_date_time);
             status = itemView.findViewById(R.id.text_status);
             type = itemView.findViewById(R.id.text_type);
-            email = itemView.findViewById(R.id.text_email); // ← Bind it
+            email = itemView.findViewById(R.id.text_email);
             acceptButton = itemView.findViewById(R.id.button_accept_ride);
         }
     }
-
 }
