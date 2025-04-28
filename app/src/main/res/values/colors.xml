@@ -7,4 +7,7 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
+    <color name="button_gray">#D3D3D3</color> <!-- Light gray color -->
+    <color name="button_blue">#2196F3</color> <!-- Blue color for the active button -->
+
 </resources>

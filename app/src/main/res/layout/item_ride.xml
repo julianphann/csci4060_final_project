@@ -8,6 +8,26 @@
     android:elevation="2dp"
     android:layout_marginBottom="8dp">
 
+    <!-- Status (BIG and at the TOP) -->
+    <TextView
+        android:id="@+id/text_status"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Status: pending"
+        android:textColor="#000000"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="8dp" />
+
+    <!-- Accepted By -->
+    <TextView
+        android:id="@+id/text_accepted_by"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="Accepted by: Not accepted yet"
+        android:textColor="#555"
+        android:layout_marginBottom="8dp"/>
+
     <!-- User Email -->
     <TextView
         android:id="@+id/text_email"
@@ -49,14 +69,6 @@
         android:layout_height="wrap_content"
         android:text="Date/Time: 2025-05-01 13:00" />
 
-    <!-- Status -->
-    <TextView
-        android:id="@+id/text_status"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Status: pending"
-        android:textColor="#666" />
-
     <!-- Accept Button -->
     <Button
         android:id="@+id/button_accept_ride"
@@ -64,5 +76,9 @@
         android:layout_height="wrap_content"
         android:text="Accept Ride"
         android:textColor="@android:color/white"
-        android:padding="8dp"/>
+        android:padding="8dp"
+        android:layout_marginTop="8dp"
+        android:background="@drawable/button_background" />  <!-- Default button background -->
+
 </LinearLayout>
+

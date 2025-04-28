@@ -1,5 +1,6 @@
 package edu.uga.cs.finalproject;
 
+import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -20,9 +21,8 @@ public class RideAdapter extends FirebaseRecyclerAdapter<Ride, RideAdapter.RideV
     }
 
     private OnRideClickListener listener;
-    private String buttonText; // <- New field for button text
+    private String buttonText;
 
-    // Updated constructor: takes both listener and button text
     public RideAdapter(@NonNull FirebaseRecyclerOptions<Ride> options, OnRideClickListener listener, String buttonText) {
         super(options);
         this.listener = listener;
@@ -34,11 +34,32 @@ public class RideAdapter extends FirebaseRecyclerAdapter<Ride, RideAdapter.RideV
         holder.destination.setText("To: " + model.getDestination());
         holder.pickup.setText("From: " + model.getPickup());
         holder.dateTime.setText("Date/Time: " + model.getDateTime());
-        holder.status.setText("Status: " + model.getStatus());
         holder.type.setText("Type: " + model.getType());
         holder.email.setText("Posted by: " + model.getEmail());
 
-        // Set dynamic button text
+        // Set the status based on the confirmation state
+        if (model.isRiderConfirmed() && model.isDriverConfirmed()) {
+            holder.status.setText("Status: completed");
+            holder.acceptButton.setBackgroundColor(Color.GRAY);  // Gray the button
+            holder.acceptButton.setEnabled(false);  // Disable the button
+        } else if (model.isDriverConfirmed()) {
+            holder.status.setText("Status: accepted");
+            holder.acceptButton.setBackgroundColor(Color.GRAY);  // Gray the button
+            holder.acceptButton.setEnabled(false);  // Disable the button
+        } else {
+            holder.status.setText("Status: " + model.getStatus());
+            holder.acceptButton.setBackgroundColor(Color.BLUE);  // Active button color
+            holder.acceptButton.setEnabled(true);  // Enable the button
+        }
+
+        // Set the "Accepted by" text
+        if (model.getDriverEmail() != null && !model.getDriverEmail().isEmpty()) {
+            holder.acceptedBy.setText("Accepted by: " + model.getDriverEmail());
+        } else {
+            holder.acceptedBy.setText("Accepted by: Not accepted yet");
+        }
+
+        // Set dynamic button text (for accept button)
         holder.acceptButton.setText(buttonText);
 
         // Handle item click
@@ -57,14 +78,12 @@ public class RideAdapter extends FirebaseRecyclerAdapter<Ride, RideAdapter.RideV
     @NonNull
     @Override
     public RideViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        // Inflate the item layout for each ride
         View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_ride, parent, false);
         return new RideViewHolder(view);
     }
 
-    // ViewHolder to hold the individual ride item views
     public static class RideViewHolder extends RecyclerView.ViewHolder {
-        TextView destination, pickup, dateTime, status, type, email;
+        TextView destination, pickup, dateTime, status, type, email, acceptedBy;
         Button acceptButton;
 
         public RideViewHolder(@NonNull View itemView) {
@@ -76,7 +95,9 @@ public class RideAdapter extends FirebaseRecyclerAdapter<Ride, RideAdapter.RideV
             type = itemView.findViewById(R.id.text_type);
             email = itemView.findViewById(R.id.text_email);
             acceptButton = itemView.findViewById(R.id.button_accept_ride);
+            acceptedBy = itemView.findViewById(R.id.text_accepted_by); // Add the accepted by field
         }
     }
 }
+
 

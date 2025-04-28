@@ -40,7 +40,9 @@ public class RidesFragment extends Fragment {
         dbRef = FirebaseDatabase.getInstance().getReference("rides");
 
         String userEmail = mAuth.getCurrentUser().getEmail();
-        Query query = dbRef.orderByChild("acceptedBy").equalTo(userEmail);
+
+        // 🧹 Updated Query: show rides accepted by me and not yet completed
+        Query query = dbRef.orderByChild("status").equalTo("accepted");
 
         FirebaseRecyclerOptions<Ride> options = new FirebaseRecyclerOptions.Builder<Ride>()
                 .setQuery(query, Ride.class)
@@ -49,7 +51,12 @@ public class RidesFragment extends Fragment {
         RideAdapter.OnRideClickListener listener = new RideAdapter.OnRideClickListener() {
             @Override
             public void onRideClick(Ride ride, String key) {
-                confirmRideCompletion(ride, key);
+                // Only confirm if ride isn't already completed
+                if (ride.getStatus() == null || !ride.getStatus().equals("completed")) {
+                    confirmRideCompletion(ride, key);
+                } else {
+                    Toast.makeText(getContext(), "This ride is already completed.", Toast.LENGTH_SHORT).show();
+                }
             }
         };
 
@@ -78,36 +85,60 @@ public class RidesFragment extends Fragment {
     }
 
     private void confirmRideCompletion(Ride ride, String key) {
-        // First move the ride to history
-        moveToHistory(ride, key);
+        String currentUserEmail = mAuth.getCurrentUser().getEmail();
 
-        // Then adjust points
-        adjustPoints(ride);
+        Map<String, Object> updates = new HashMap<>();
 
-        // Finally delete from active rides
-        dbRef.child(key).removeValue().addOnSuccessListener(unused -> {
-            Toast.makeText(getContext(), "Ride completed and removed from active rides.", Toast.LENGTH_SHORT).show();
+        if (currentUserEmail.equals(ride.getDriverEmail())) {
+            updates.put("driverConfirmed", true);
+        } else if (currentUserEmail.equals(ride.getRiderEmail())) {
+            updates.put("riderConfirmed", true);
+        } else {
+            Toast.makeText(getContext(), "You are not part of this ride.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        dbRef.child(key).updateChildren(updates).addOnSuccessListener(unused -> {
+            // After updating riderConfirmed/driverConfirmed, check if BOTH are confirmed
+            dbRef.child(key).get().addOnSuccessListener(snapshot -> {
+                Ride updatedRide = snapshot.getValue(Ride.class);
+                if (updatedRide != null && updatedRide.isDriverConfirmed() && updatedRide.isRiderConfirmed()) {
+                    // Now mark it as fully confirmed and completed
+                    Map<String, Object> finalUpdates = new HashMap<>();
+                    finalUpdates.put("isConfirmed", true);
+                    finalUpdates.put("status", "completed");
+                    finalUpdates.put("completedAt", System.currentTimeMillis());
+
+                    dbRef.child(key).updateChildren(finalUpdates).addOnSuccessListener(unused2 -> {
+                        Toast.makeText(getContext(), "Ride fully completed!", Toast.LENGTH_SHORT).show();
+                        adjustPoints(updatedRide);
+                    });
+                } else {
+                    Toast.makeText(getContext(), "Confirmation recorded. Waiting for other user.", Toast.LENGTH_SHORT).show();
+                }
+            });
         }).addOnFailureListener(e -> {
-            Toast.makeText(getContext(), "Failed to remove ride: " + e.getMessage(), Toast.LENGTH_LONG).show();
+            Toast.makeText(getContext(), "Failed to confirm: " + e.getMessage(), Toast.LENGTH_LONG).show();
         });
     }
 
+
     private void adjustPoints(Ride ride) {
+        if (ride.getRiderEmail() == null || ride.getDriverEmail() == null) return;
+
         String riderKey = sanitizeEmail(ride.getRiderEmail());
         String driverKey = sanitizeEmail(ride.getDriverEmail());
 
         DatabaseReference riderPointsRef = FirebaseDatabase.getInstance().getReference("users").child(riderKey).child("ridePoints");
         DatabaseReference driverPointsRef = FirebaseDatabase.getInstance().getReference("users").child(driverKey).child("ridePoints");
 
-        // Atomically adjust rider points
         riderPointsRef.get().addOnSuccessListener(snapshot -> {
             Long riderPoints = snapshot.getValue(Long.class);
             if (riderPoints == null) riderPoints = 0L;
-            long newPoints = Math.max(0, riderPoints - 50);  // Avoid negative points
+            long newPoints = Math.max(0, riderPoints - 50);  // no negative points
             riderPointsRef.setValue(newPoints);
         });
 
-        // Atomically adjust driver points
         driverPointsRef.get().addOnSuccessListener(snapshot -> {
             Long driverPoints = snapshot.getValue(Long.class);
             if (driverPoints == null) driverPoints = 0L;
@@ -115,15 +146,7 @@ public class RidesFragment extends Fragment {
         });
     }
 
-    private void moveToHistory(Ride ride, String key) {
-        DatabaseReference historyRef = FirebaseDatabase.getInstance().getReference("history");
-        ride.setStatus("completed");  // set ride status before moving
-        ride.setCompletedAt(System.currentTimeMillis());  // record completed time
-        historyRef.child(key).setValue(ride);
-    }
-
     private String sanitizeEmail(String email) {
-        if (email == null) return null;
         return email.replace(".", ",");
     }
 }

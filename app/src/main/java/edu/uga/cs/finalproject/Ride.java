@@ -13,6 +13,10 @@ public class Ride {
     private String driverEmail;
     private String email; // Email of the user who posted the ride
     private long completedAt;
+    private boolean riderConfirmed;
+    private boolean driverConfirmed;
+    private boolean isConfirmed;
+
     // Default constructor required for Firebase
     public Ride() {
     }
@@ -113,4 +117,28 @@ public class Ride {
     public void setCompletedAt(long completedAt) {
         this.completedAt = completedAt;
     }
+    public boolean isRiderConfirmed() {
+        return riderConfirmed;
+    }
+
+    public void setRiderConfirmed(boolean riderConfirmed) {
+        this.riderConfirmed = riderConfirmed;
+    }
+
+    public boolean isDriverConfirmed() {
+        return driverConfirmed;
+    }
+
+    public void setDriverConfirmed(boolean driverConfirmed) {
+        this.driverConfirmed = driverConfirmed;
+    }
+
+    public boolean isConfirmed() {
+        return isConfirmed;
+    }
+
+    public void setConfirmed(boolean confirmed) {
+        isConfirmed = confirmed;
+    }
+
 }
