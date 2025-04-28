@@ -39,7 +39,8 @@ public class FindRideFragment extends Fragment {
         dbRef = FirebaseDatabase.getInstance().getReference("rides");
         currentUserEmail = FirebaseAuth.getInstance().getCurrentUser().getEmail();
 
-        Query query = dbRef.orderByChild("status").equalTo("pending");
+        // Now order by dateTime
+        Query query = dbRef.orderByChild("dateTime");
 
         FirebaseRecyclerOptions<Ride> options = new FirebaseRecyclerOptions.Builder<Ride>()
                 .setQuery(query, Ride.class)
@@ -48,11 +49,16 @@ public class FindRideFragment extends Fragment {
         adapter = new RideAdapter(options, (ride, key) -> acceptRide(ride, key), "Accept Ride") {
             @Override
             protected void onBindViewHolder(@NonNull RideViewHolder holder, int position, @NonNull Ride model) {
-                // Hide rides created by current user
                 if (model.getEmail() != null && model.getEmail().equals(currentUserEmail)) {
+                    // Hide your own rides
+                    holder.itemView.setVisibility(View.GONE);
+                    holder.itemView.setLayoutParams(new RecyclerView.LayoutParams(0, 0));
+                } else if (!"pending".equals(model.getStatus())) {
+                    // Hide non-pending rides
                     holder.itemView.setVisibility(View.GONE);
                     holder.itemView.setLayoutParams(new RecyclerView.LayoutParams(0, 0));
                 } else {
+                    // Show valid rides
                     super.onBindViewHolder(holder, position, model);
                 }
             }
@@ -88,8 +94,8 @@ public class FindRideFragment extends Fragment {
         updates.put("acceptedBy", currentUserEmail);
 
         if ("offer".equals(ride.getType())) {
-            updates.put("riderEmail", currentUserEmail);
-            updates.put("driverEmail", ride.getEmail());
+            updates.put("riderEmail", ride.getEmail());
+            updates.put("driverEmail", currentUserEmail);
         } else if ("request".equals(ride.getType())) {
             updates.put("driverEmail", currentUserEmail);
             updates.put("riderEmail", ride.getEmail());
@@ -98,7 +104,6 @@ public class FindRideFragment extends Fragment {
         dbRef.child(key).updateChildren(updates).addOnSuccessListener(unused -> {
             Toast.makeText(getContext(), "You have accepted the ride. Please confirm after the ride has been completed.", Toast.LENGTH_LONG).show();
             addToAcceptedList(ride, key);
-            // Removed navigation to RidesFragment
         }).addOnFailureListener(e -> {
             Toast.makeText(getContext(), "Failed to accept ride: " + e.getMessage(), Toast.LENGTH_LONG).show();
         });
@@ -109,11 +114,11 @@ public class FindRideFragment extends Fragment {
 
         String riderEmail, driverEmail;
         if ("offer".equals(ride.getType())) {
-            riderEmail = currentUserEmail;
-            driverEmail = ride.getEmail();
-        } else if ("request".equals(ride.getType())) {
-            driverEmail = currentUserEmail;
             riderEmail = ride.getEmail();
+            driverEmail = currentUserEmail;
+        } else if ("request".equals(ride.getType())) {
+            driverEmail = ride.getEmail();
+            riderEmail = currentUserEmail;
         } else {
             return;
         }
@@ -127,5 +132,3 @@ public class FindRideFragment extends Fragment {
         driverRef.child(key).setValue(ride);
     }
 }
-
-

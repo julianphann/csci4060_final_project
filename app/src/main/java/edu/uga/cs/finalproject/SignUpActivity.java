@@ -2,6 +2,7 @@ package edu.uga.cs.finalproject;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.EditText;
@@ -9,6 +10,8 @@ import android.widget.Toast;
 import androidx.appcompat.app.AppCompatActivity;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 
 public class SignUpActivity extends AppCompatActivity {
 
@@ -59,17 +62,45 @@ public class SignUpActivity extends AppCompatActivity {
         mAuth.createUserWithEmailAndPassword(email, password)
                 .addOnCompleteListener(this, task -> {
                     if (task.isSuccessful()) {
-                        FirebaseUser user = mAuth.getCurrentUser();
-                        Toast.makeText(SignUpActivity.this, "Registration successful", Toast.LENGTH_SHORT).show();
+                        FirebaseUser firebaseUser = mAuth.getCurrentUser();
+                        if (firebaseUser != null) {
+                            String userEmail = firebaseUser.getEmail();
+                            String userKey = userEmail.replace(".", ",");
 
-                        // Optionally: send to main screen or back to login
-                        Intent intent = new Intent(SignUpActivity.this, MainActivity.class);
-                        startActivity(intent);
-                        finish();
+                            // Create a new User object with 50 points
+                            User newUser = new User(userEmail, 50); // Default 50 points
+
+                            // Log for debugging
+                            Log.d("SignUpActivity", "Creating user with email: " + userEmail);
+
+                            // Save to database
+                            FirebaseDatabase.getInstance().getReference("users")
+                                    .child(userKey)
+                                    .setValue(newUser)
+                                    .addOnSuccessListener(unused -> {
+                                        Log.d("SignUpActivity", "User saved to database with 50 points");
+
+                                        // Once the user is saved, move to MainActivity or relevant screen
+                                        Intent intent = new Intent(SignUpActivity.this, MainActivity.class);
+                                        startActivity(intent);
+                                        finish();
+                                    })
+                                    .addOnFailureListener(e -> {
+                                        Log.e("SignUpActivity", "Failed to save user: " + e.getMessage());
+                                        Toast.makeText(SignUpActivity.this, "Failed to save user: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                                    });
+                        }
                     } else {
+                        Log.e("SignUpActivity", "Registration failed: " + task.getException().getMessage());
                         Toast.makeText(SignUpActivity.this, "Registration failed: " + task.getException().getMessage(),
                                 Toast.LENGTH_LONG).show();
                     }
                 });
     }
+
+    // Helper to sanitize email
+    private String sanitizeEmail(String email) {
+        return email.replace(".", ",");
+    }
+
 }
