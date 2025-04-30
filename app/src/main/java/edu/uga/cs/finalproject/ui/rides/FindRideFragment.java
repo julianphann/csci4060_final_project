@@ -93,16 +93,18 @@ public class FindRideFragment extends Fragment {
         updates.put("acceptedBy", currentUserEmail);
 
         if ("offer".equals(ride.getType())) {
-            updates.put("riderEmail", ride.getEmail());
-            updates.put("driverEmail", currentUserEmail);
+            // Offer: accepting user is the rider
+            updates.put("riderEmail", currentUserEmail);  // The rider is the one accepting the offer.
+            updates.put("driverEmail", ride.getEmail());  // The poster is the driver of the offer.
         } else if ("request".equals(ride.getType())) {
-            updates.put("driverEmail", currentUserEmail);
-            updates.put("riderEmail", ride.getEmail());
+            // Request: accepting user is the driver
+            updates.put("driverEmail", currentUserEmail);  // The driver is the one accepting the request.
+            updates.put("riderEmail", ride.getEmail());  // The poster is the rider of the request.
         }
 
         dbRef.child(key).updateChildren(updates)
                 .addOnSuccessListener(unused -> {
-                    Toast.makeText(getContext(), "After Confirming, +50 for driver, -50 for  rider.", Toast.LENGTH_LONG).show();
+                    Toast.makeText(getContext(), "Ride accepted!", Toast.LENGTH_LONG).show();
                     addToAcceptedList(ride, key);
                 })
                 .addOnFailureListener(e -> {

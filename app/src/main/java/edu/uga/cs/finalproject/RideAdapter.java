@@ -77,9 +77,22 @@ public class RideAdapter extends FirebaseRecyclerAdapter<Ride, RideAdapter.RideV
         holder.acceptButton.setEnabled(buttonEnabled);
         holder.acceptButton.setText(buttonText);
 
-        // Accepted by information
-        String acceptedByText = model.getDriverEmail() != null ?
-                "Driver: " + model.getDriverEmail() : "Not accepted yet";
+
+        String acceptedByText;
+        if ("offer".equalsIgnoreCase(model.getType())) {
+            // If it's an offer, someone (rider) can accept it
+            acceptedByText = model.getRiderEmail() != null
+                    ? "Rider: " + model.getRiderEmail()
+                    : "Not accepted yet";
+        } else if ("request".equalsIgnoreCase(model.getType())) {
+            // If it's a request, someone (driver) can accept it
+            acceptedByText = model.getDriverEmail() != null
+                    ? "Driver: " + model.getDriverEmail()
+                    : "Not accepted yet";
+        } else {
+            acceptedByText = "Not accepted yet";
+        }
+
         holder.acceptedBy.setText(acceptedByText);
 
         // Click listeners
