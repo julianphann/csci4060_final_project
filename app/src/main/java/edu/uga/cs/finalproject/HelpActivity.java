@@ -4,6 +4,9 @@ import android.os.Bundle;
 import android.widget.TextView;
 import androidx.appcompat.app.AppCompatActivity;
 
+/**
+ * This is the view for the help page.
+ */
 public class HelpActivity extends AppCompatActivity {
 
     @Override

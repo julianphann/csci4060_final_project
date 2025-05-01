@@ -12,6 +12,10 @@ import androidx.appcompat.app.AppCompatActivity;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
+
+/**
+ * Login page and logic. Creates an instance of the firebase to connect the database.
+ */
 public class LoginActivity extends AppCompatActivity {
 
     private static final String TAG = "LoginActivity";
@@ -29,6 +33,9 @@ public class LoginActivity extends AppCompatActivity {
         Button btnLogin = findViewById(R.id.login_button);
         Button cancelBtn = findViewById(R.id.cancel_button);
 
+        /**
+         * If the user presses cancel, it'll go back to splash screen.
+         */
         cancelBtn.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -39,6 +46,10 @@ public class LoginActivity extends AppCompatActivity {
             }
         });
 
+        /**
+         * Takes the user's input and checks for errors. Also checks if the user is an actual user in the database.
+         * Shows appropriate toast messages for errors or if it is a successful login.
+         */
         btnLogin.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
