@@ -4,6 +4,7 @@ import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -29,8 +30,14 @@ import edu.uga.cs.finalproject.R;
 import edu.uga.cs.finalproject.RideAdapter;
 import edu.uga.cs.finalproject.Ride;
 
+/**
+ * Fragment for managing user's rides - both created and accepted.
+ * Provides functionality to view, edit, and delete rides.
+ * Uses FirebaseRecyclerAdapter to display rides in real-time.
+ */
 public class MyRidesFragment extends Fragment {
 
+    // Firebase components
     private FirebaseAuth mAuth;
     private DatabaseReference dbRef;
     private RideAdapter adapter;
@@ -40,31 +47,33 @@ public class MyRidesFragment extends Fragment {
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         View rootView = inflater.inflate(R.layout.fragment_my_rides, container, false);
 
+        // Initialize UI components and Firebase references
         recyclerView = rootView.findViewById(R.id.recyclerView);
         mAuth = FirebaseAuth.getInstance();
         dbRef = FirebaseDatabase.getInstance().getReference("rides");
 
+        // Get current user's email for ride filtering
         String userEmail = mAuth.getCurrentUser().getEmail();
 
+        // Configure FirebaseRecyclerOptions to load all rides
         FirebaseRecyclerOptions<Ride> options = new FirebaseRecyclerOptions.Builder<Ride>()
-                .setQuery(dbRef, Ride.class) // Load all rides
+                .setQuery(dbRef, Ride.class)
                 .build();
 
-        RideAdapter.OnRideClickListener listener = new RideAdapter.OnRideClickListener() {
-            @Override
-            public void onRideClick(Ride ride, String key) {
-                if (ride.getEmail() != null && ride.getEmail().equals(userEmail)) {
-                    // Only allow edit if user posted this ride
-                    editRideDialog(ride, key);
-                }
+        // Click listener for ride items - only allows editing of user's own rides
+        RideAdapter.OnRideClickListener listener = (ride, key) -> {
+            if (ride.getEmail() != null && ride.getEmail().equals(userEmail)) {
+                editRideDialog(ride, key);
             }
         };
 
+        // Custom adapter with filtering logic
         adapter = new RideAdapter(options, listener, "Edit Ride") {
             @Override
             protected void onBindViewHolder(@NonNull RideViewHolder holder, int position, @NonNull Ride model) {
                 String email = mAuth.getCurrentUser().getEmail();
 
+                // Determine if ride should be displayed based on user's involvement
                 boolean isPostedByUser = model.getEmail() != null && model.getEmail().equals(email);
                 boolean isAcceptedByUser = (model.getRiderEmail() != null && model.getRiderEmail().equals(email)) ||
                         (model.getDriverEmail() != null && model.getDriverEmail().equals(email));
@@ -72,12 +81,14 @@ public class MyRidesFragment extends Fragment {
                 if (isPostedByUser || isAcceptedByUser) {
                     super.onBindViewHolder(holder, position, model);
                 } else {
+                    // Hide unrelated rides by collapsing their layout space
                     holder.itemView.setVisibility(View.GONE);
                     holder.itemView.setLayoutParams(new RecyclerView.LayoutParams(0, 0));
                 }
             }
         };
 
+        // Set up RecyclerView
         recyclerView.setLayoutManager(new LinearLayoutManager(getContext()));
         recyclerView.setAdapter(adapter);
 
@@ -87,36 +98,38 @@ public class MyRidesFragment extends Fragment {
     @Override
     public void onStart() {
         super.onStart();
-        adapter.startListening();
+        adapter.startListening(); // Begin listening for Firebase data changes
     }
 
     @Override
     public void onStop() {
         super.onStop();
-        adapter.stopListening();
+        adapter.stopListening(); // Stop Firebase data updates when fragment is inactive
     }
 
+    /**
+     * Shows combined date and time picker dialog
+     * @param inputDateTime EditText field to update with selected datetime
+     */
     private void showDateTimePicker(EditText inputDateTime) {
         final Calendar calendar = Calendar.getInstance();
 
-        // First, show DatePickerDialog
+        // Date picker configuration
         DatePickerDialog datePickerDialog = new DatePickerDialog(requireContext(),
                 (view, year, month, dayOfMonth) -> {
                     calendar.set(Calendar.YEAR, year);
                     calendar.set(Calendar.MONTH, month);
                     calendar.set(Calendar.DAY_OF_MONTH, dayOfMonth);
 
-                    // After picking date, show TimePickerDialog
+                    // Time picker shown after date selection
                     TimePickerDialog timePickerDialog = new TimePickerDialog(requireContext(),
                             (timeView, hourOfDay, minute) -> {
                                 calendar.set(Calendar.HOUR_OF_DAY, hourOfDay);
                                 calendar.set(Calendar.MINUTE, minute);
 
-                                // Format selected date and time
+                                // Format selected datetime and update input field
                                 SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault());
-                                String selectedDateTime = sdf.format(calendar.getTime());
-
-                                inputDateTime.setText(selectedDateTime);
+                                inputDateTime.setText(sdf.format(calendar.getTime()));
                             }, calendar.get(Calendar.HOUR_OF_DAY), calendar.get(Calendar.MINUTE), false);
 
                     timePickerDialog.show();
@@ -125,79 +138,122 @@ public class MyRidesFragment extends Fragment {
         datePickerDialog.show();
     }
 
-
+    /**
+     * Displays ride editing dialog with validation
+     * @param ride Ride object to edit
+     * @param key Firebase database key for the ride
+     */
     private void editRideDialog(Ride ride, String key) {
-        // Prevent editing if status is accepted
+        // Prevent editing of accepted rides
         if ("accepted".equalsIgnoreCase(ride.getStatus())) {
-            Toast.makeText(requireContext(), "Cannot edit a ride that has been accepted.", Toast.LENGTH_SHORT).show();
-            return; // Do not open the edit dialog
+            Toast.makeText(requireContext(), "Cannot edit accepted rides", Toast.LENGTH_SHORT).show();
+            return;
         }
 
         AlertDialog.Builder builder = new AlertDialog.Builder(requireContext());
         builder.setTitle("Edit Ride");
 
+        // Dialog layout setup
         LinearLayout layout = new LinearLayout(requireContext());
         layout.setOrientation(LinearLayout.VERTICAL);
         layout.setPadding(50, 40, 50, 10);
 
-        final EditText inputDestination = new EditText(requireContext());
-        inputDestination.setHint("Destination");
-        inputDestination.setText(ride.getDestination());
+        // Create input fields with current values
+        final EditText inputDestination = createInputField("Destination", ride.getDestination());
+        final EditText inputPickup = createInputField("Pickup", ride.getPickup());
+        final EditText inputDateTime = createDateTimeField(ride.getDateTime());
+
+        // Add fields to layout
         layout.addView(inputDestination);
-
-        final EditText inputPickup = new EditText(requireContext());
-        inputPickup.setHint("Pickup");
-        inputPickup.setText(ride.getPickup());
         layout.addView(inputPickup);
-
-        final EditText inputDateTime = new EditText(requireContext());
-        inputDateTime.setHint("Date/Time");
-        inputDateTime.setText(ride.getDateTime());
-        inputDateTime.setFocusable(false);
-        inputDateTime.setClickable(true);
-        inputDateTime.setOnClickListener(v -> showDateTimePicker(inputDateTime));
         layout.addView(inputDateTime);
 
         builder.setView(layout);
 
-        builder.setNeutralButton("Delete Ride", (dialog, which) -> {
-            dbRef.child(key).removeValue();
-        });
-
+        // Dialog button configuration
+        builder.setNeutralButton("Delete Ride", (dialog, which) -> deleteRide(key));
         builder.setNegativeButton("Cancel", (dialog, which) -> dialog.cancel());
-
-        builder.setPositiveButton("Save", null);
+        builder.setPositiveButton("Save", null); // Listener set later to prevent auto-dismiss
 
         AlertDialog dialog = builder.create();
         dialog.show();
 
-        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> {
-            String newDestination = inputDestination.getText().toString().trim();
-            String newPickup = inputPickup.getText().toString().trim();
-            String newDateTime = inputDateTime.getText().toString().trim();
+        // Custom save button handling
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v -> handleSaveAction(
+                key,
+                inputDestination.getText().toString().trim(),
+                inputPickup.getText().toString().trim(),
+                inputDateTime.getText().toString().trim(),
+                dialog
+        ));
+    }
 
-            if (!newDestination.isEmpty()) {
-                dbRef.child(key).child("destination").setValue(newDestination);
-            }
-            if (!newPickup.isEmpty()) {
-                dbRef.child(key).child("pickup").setValue(newPickup);
-            }
-            if (!newDateTime.isEmpty()) {
-                dbRef.child(key).child("datetime").setValue(newDateTime);
+    /**
+     * Creates a standard input field with hint and initial value
+     */
+    private EditText createInputField(String hint, String initialValue) {
+        EditText field = new EditText(requireContext());
+        field.setHint(hint);
+        field.setText(initialValue);
+        return field;
+    }
 
-                // **NEW: Also update the timestamp**
-                try {
-                    SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault());
-                    long newTimestamp = sdf.parse(newDateTime).getTime();
-                    dbRef.child(key).child("timestamp").setValue(newTimestamp);
-                } catch (Exception e) {
-                    e.printStackTrace();
-                }
-            }
+    /**
+     * Creates datetime input field with picker interaction
+     */
+    private EditText createDateTimeField(String initialValue) {
+        EditText field = new EditText(requireContext());
+        field.setHint("Date/Time");
+        field.setText(initialValue);
+        field.setFocusable(false);
+        field.setOnClickListener(v -> showDateTimePicker(field));
+        return field;
+    }
 
-            dialog.dismiss();
-            Toast.makeText(requireContext(), "Ride updated successfully!", Toast.LENGTH_SHORT).show();
-        });
+    /**
+     * Handles ride deletion in Firebase
+     * @param key Firebase database key of the ride to delete
+     */
+    private void deleteRide(String key) {
+        dbRef.child(key).removeValue()
+                .addOnSuccessListener(unused ->
+                        Toast.makeText(requireContext(), "Ride deleted", Toast.LENGTH_SHORT).show()
+                );
+    }
 
+    /**
+     * Validates and saves updated ride information
+     */
+    private void handleSaveAction(String key, String newDestination,
+                                  String newPickup, String newDateTime,
+                                  AlertDialog dialog) {
+        // Update changed fields in Firebase
+        if (!newDestination.isEmpty()) {
+            dbRef.child(key).child("destination").setValue(newDestination);
+        }
+        if (!newPickup.isEmpty()) {
+            dbRef.child(key).child("pickup").setValue(newPickup);
+        }
+        if (!newDateTime.isEmpty()) {
+            updateDateTimeFields(key, newDateTime);
+        }
+
+        dialog.dismiss();
+        Toast.makeText(requireContext(), "Ride updated!", Toast.LENGTH_SHORT).show();
+    }
+
+    /**
+     * Updates both datetime string and timestamp in Firebase
+     */
+    private void updateDateTimeFields(String key, String newDateTime) {
+        dbRef.child(key).child("datetime").setValue(newDateTime);
+        try {
+            // Convert datetime string to timestamp
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm", Locale.getDefault());
+            long newTimestamp = sdf.parse(newDateTime).getTime();
+            dbRef.child(key).child("timestamp").setValue(newTimestamp);
+        } catch (Exception e) {
+            Log.e("DateTimeUpdate", "Error parsing datetime", e);
+        }
     }
 }

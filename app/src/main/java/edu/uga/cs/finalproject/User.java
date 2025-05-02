@@ -5,18 +5,32 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
+/**
+ * Represents a user entity in the application and handles Firebase data operations.
+ * Manages user data including email and ride points balance.
+ * Provides method to fetch user data asynchronously from Firebase Realtime Database.
+ */
 public class User {
     private String email;
     private int ridePoints;
 
-    // Default constructor required for calls to DataSnapshot.getValue(User.class)
+    /**
+     * Default constructor required for Firebase deserialization
+     */
     public User() {
     }
 
+    /**
+     * Creates a User with specified email and initial ride points
+     * @param email User's email address (unique identifier)
+     * @param ridePoints Initial balance of ride points
+     */
     public User(String email, int ridePoints) {
         this.email = email;
         this.ridePoints = ridePoints;
     }
+
+    // Basic getters and setters required for Firebase data mapping
 
     public String getEmail() {
         return email;
@@ -34,13 +48,18 @@ public class User {
         this.ridePoints = ridePoints;
     }
 
-    // Fetch user data from Firebase Realtime Database
+    /**
+     * Fetches user data from Firebase Realtime Database asynchronously
+     * @param userEmail Email address of user to retrieve (will be sanitized)
+     * @param callback Handler for asynchronous response containing User object or error
+     */
     public static void fetchUserData(String userEmail, UserDataCallback callback) {
-        // Ensure we handle '.' as Firebase keys can't contain dots, replace it with commas
+        // Sanitize email for Firebase key compliance
         String userKey = userEmail.replace(".", ",");
 
-        // Reference to the user's data in the "users" node
-        DatabaseReference userRef = FirebaseDatabase.getInstance().getReference("users").child(userKey);
+        DatabaseReference userRef = FirebaseDatabase.getInstance()
+                .getReference("users")
+                .child(userKey);
 
         userRef.get().addOnSuccessListener(snapshot -> {
             if (snapshot.exists()) {
@@ -48,21 +67,30 @@ public class User {
                 if (user != null) {
                     callback.onSuccess(user);
                 } else {
-                    callback.onFailure("User data not found");
+                    callback.onFailure("Data format mismatch for user: " + userEmail);
                 }
             } else {
-                callback.onFailure("User not found in database");
+                callback.onFailure("User account not found: " + userEmail);
             }
         }).addOnFailureListener(e -> {
-            callback.onFailure(e.getMessage());
+            callback.onFailure("Database error: " + e.getMessage());
         });
     }
 
-    // Callback interface for fetching user data asynchronously
+    /**
+     * Callback interface for handling asynchronous user data operations
+     */
     public interface UserDataCallback {
+        /**
+         * Called when user data is successfully retrieved
+         * @param user Retrieved User object with current data
+         */
         void onSuccess(User user);
 
+        /**
+         * Called when user data retrieval fails
+         * @param error Description of failure reason
+         */
         void onFailure(String error);
     }
 }
-

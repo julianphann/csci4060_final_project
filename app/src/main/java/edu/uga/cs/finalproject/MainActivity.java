@@ -25,10 +25,15 @@ import com.google.android.material.navigation.NavigationView;
 
 import edu.uga.cs.finalproject.databinding.ActivityMainBinding;
 
+/**
+ *  Fragment holder where it'll check if the user is authenticated. If the user is authenticated, it'll
+ *  open the main home screen for the users but if not it'll go back to login/signup page.
+ */
 public class MainActivity extends AppCompatActivity {
 
     private AppBarConfiguration mAppBarConfiguration;
     private ActivityMainBinding binding;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {

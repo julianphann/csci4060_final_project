@@ -2,6 +2,10 @@ package edu.uga.cs.finalproject;
 
 import com.google.firebase.database.PropertyName;
 
+/**
+ * Data Model Class for Rides in the database. Has all the necessaru variables for methods implemented as
+ * well as getters/setters.
+ */
 public class Ride {
     private String id;
     private String type; // "offer" or "request"
