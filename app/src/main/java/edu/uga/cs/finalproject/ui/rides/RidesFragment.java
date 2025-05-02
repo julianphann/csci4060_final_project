@@ -24,16 +24,13 @@ import edu.uga.cs.finalproject.R;
 import edu.uga.cs.finalproject.RideAdapter;
 import edu.uga.cs.finalproject.Ride;
 
-/**
- * Fragment for managing accepted rides and handling ride completion confirmation
- * Displays rides in chronological order (soonest first) and allows confirmation
- */
 public class RidesFragment extends Fragment {
 
     private FirebaseAuth mAuth;
     private DatabaseReference dbRef;
     private RideAdapter adapter;
     private RecyclerView recyclerView;
+    private String currentUserEmail;
 
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -42,8 +39,9 @@ public class RidesFragment extends Fragment {
         recyclerView = rootView.findViewById(R.id.recyclerView);
         mAuth = FirebaseAuth.getInstance();
         dbRef = FirebaseDatabase.getInstance().getReference("rides");
+        currentUserEmail = mAuth.getCurrentUser().getEmail();
 
-        // Query to get rides ordered by timestamp (soonest first) and filter future rides
+        // Query for future rides ordered by timestamp (soonest first)
         Query query = dbRef.orderByChild("timestamp")
                 .startAt(System.currentTimeMillis());
 
@@ -51,24 +49,25 @@ public class RidesFragment extends Fragment {
                 .setQuery(query, Ride.class)
                 .build();
 
-        RideAdapter.OnRideClickListener listener = new RideAdapter.OnRideClickListener() {
-            @Override
-            public void onRideClick(Ride ride, String key) {
-                if (ride.getStatus() == null || !ride.getStatus().equals("completed")) {
-                    confirmRideCompletion(ride, key);
-                } else {
-                    Toast.makeText(getContext(), "This ride is already completed.", Toast.LENGTH_SHORT).show();
-                }
+        RideAdapter.OnRideClickListener listener = (ride, key) -> {
+            if (ride.getStatus() == null || !ride.getStatus().equals("completed")) {
+                confirmRideCompletion(ride, key);
+            } else {
+                Toast.makeText(getContext(), "This ride is already completed.", Toast.LENGTH_SHORT).show();
             }
         };
 
         adapter = new RideAdapter(options, listener, "Confirm Ride") {
             @Override
             protected void onBindViewHolder(@NonNull RideAdapter.RideViewHolder holder, int position, @NonNull Ride model) {
-                // Filter for accepted rides that haven't occurred yet
-                if ("accepted".equals(model.getStatus())) {
+                // Check if user is part of this ride and it's accepted
+                boolean isUserRide = currentUserEmail.equals(model.getDriverEmail()) ||
+                        currentUserEmail.equals(model.getRiderEmail());
+
+                if ("accepted".equals(model.getStatus()) && isUserRide) {
                     super.onBindViewHolder(holder, position, model);
                 } else {
+                    // Hide irrelevant rides
                     holder.itemView.setVisibility(View.GONE);
                     holder.itemView.setLayoutParams(new RecyclerView.LayoutParams(0, 0));
                 }
@@ -81,20 +80,19 @@ public class RidesFragment extends Fragment {
         return rootView;
     }
 
+    // The rest of the class remains unchanged (keep all existing methods below)
+    // [Maintain original onStart/onStop, confirmRideCompletion, adjustPoints, sanitizeEmail]
+
     @Override
     public void onStart() {
         super.onStart();
-        if (adapter != null) {
-            adapter.startListening();
-        }
+        if (adapter != null) adapter.startListening();
     }
 
     @Override
     public void onStop() {
         super.onStop();
-        if (adapter != null) {
-            adapter.stopListening();
-        }
+        if (adapter != null) adapter.stopListening();
     }
 
     private void confirmRideCompletion(Ride ride, String key) {
